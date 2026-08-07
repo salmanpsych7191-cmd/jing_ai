@@ -2319,14 +2319,27 @@ def _mentions_transfer_intent(reply_text: str) -> bool:
     return any(phrase in lowered for phrase in _TRANSFER_INTENT_PHRASES)
 
 
-def run_voice_agent_turn(phone: str, text: str, history: list[dict]) -> tuple[str, bool]:
+def run_voice_agent_turn(phone: str, text: str, history: list[dict], outbound_purpose: Optional[str] = None) -> tuple[str, bool]:
     """Run one voice conversation turn. Returns (spoken_reply, should_transfer)."""
     today = now_local()
+    outbound_block = (
+        f"""
+This call was placed BY the restaurant TO this person — they didn't call in. The reason for calling: {outbound_purpose}.
+Drive the conversation toward that purpose instead of waiting passively: briefly introduce yourself and the restaurant,
+explain why you're calling, and guide the conversation toward it (e.g. asking about their interest, proposing next
+steps, or booking details) — while staying warm and conversational, not pushy or scripted-sounding. Only fall back to
+generic Q&A mode once the purpose of the call has actually been addressed.
+"""
+        if outbound_purpose
+        else ""
+    )
     system_prompt = f"""
 You are the phone host for {RESTAURANT_NAME}, a halal Chinese hotpot & grill buffet in Singapore.
 Today is {today.strftime('%A, %Y-%m-%d')}. The caller's phone number is already known ({phone}) — never ask for it.
 You are speaking on a live phone call, not chatting on text. Talk like a warm, genuinely friendly host who
-loves this restaurant — not like a script being read out. Rules for spoken responses:
+loves this restaurant — not like a script being read out.
+{outbound_block}
+Rules for spoken responses:
 - Sound like a real person on the phone: use natural warmth ("Of course!", "Happy to help with that", "Great choice!"),
   react to what the caller says instead of just answering flatly, and let a bit of enthusiasm for the food come through.
 - Be interactive, not just a Q&A machine — ask a natural follow-up when it fits ("Any occasion we should know about?",
@@ -2473,7 +2486,13 @@ async def handle_voice_turn(ws: WebSocket, call_state: dict, transcript: str) ->
     insert_message(phone, "in", f"[call] {transcript}")
 
     try:
-        reply_text, should_transfer = await asyncio.to_thread(run_voice_agent_turn, phone, transcript, history)
+        reply_text, should_transfer = await asyncio.to_thread(
+            run_voice_agent_turn,
+            phone,
+            transcript,
+            history,
+            call_state.get("purpose") if call_state.get("outbound") else None,
+        )
     except Exception as exc:  # noqa: BLE001 - a live call must never go silent, no matter what breaks upstream
         logger.warning("Voice turn failed entirely for %s: %s", phone, exc)
         reply_text, should_transfer = "Sorry, I'm having some trouble on my end. Could you say that again?", False
@@ -2560,6 +2579,8 @@ def webhook_voice_outbound(
     connect = response.connect()
     stream = connect.stream(url=f"{ws_base}/media-stream")
     stream.parameter(name="phone", value=To)
+    stream.parameter(name="purpose", value=purpose)
+    stream.parameter(name="outbound", value="true")
     stream.parameter(
         name="greeting",
         value=f"Hi {guest_name}, this is {RESTAURANT_NAME} calling about {purpose}. Is now a good time to talk?",
@@ -2590,6 +2611,8 @@ async def media_stream(websocket: WebSocket) -> None:
                 call_state["stream_sid"] = start.get("streamSid")
                 params = start.get("customParameters", {}) or {}
                 call_state["phone"] = params.get("phone", "unknown")
+                call_state["outbound"] = params.get("outbound") == "true"
+                call_state["purpose"] = params.get("purpose")
                 greeting = params.get("greeting") or f"Hi, thanks for calling {RESTAURANT_NAME}."
 
                 pump_task = asyncio.create_task(pump_deepgram_transcripts(deepgram_ws, websocket, call_state))
