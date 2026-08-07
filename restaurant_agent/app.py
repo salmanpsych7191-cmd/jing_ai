@@ -2479,10 +2479,26 @@ def execute_call_transfer(call_sid: str, caller_phone: str) -> None:
         tw_client.calls(call_sid).update(twiml=str(response))
 
 
-async def speak_turn(ws: WebSocket, stream_sid: str, call_sid: str, caller_phone: str, text: str, should_transfer: bool, speaking_task_holder: dict) -> None:
+async def speak_turn(ws: WebSocket, call_state: dict, text: str, should_transfer: bool, speaking_task_holder: dict) -> None:
+    stream_sid = call_state["stream_sid"]
+    call_sid = call_state["call_sid"]
+    caller_phone = call_state["phone"]
+    mark_name = f"reply-{uuid.uuid4().hex[:8]}"
     try:
         audio_bytes = await deepgram_tts(text)
-        await send_audio_to_twilio(ws, stream_sid, audio_bytes, mark_name="reply-done")
+        call_state["awaited_mark"] = mark_name
+        call_state["mark_event"].clear()
+        await send_audio_to_twilio(ws, stream_sid, audio_bytes, mark_name=mark_name)
+        # Twilio plays the audio out in real time over the call, which takes far longer
+        # than handing the bytes to the socket does. Without waiting for Twilio's own
+        # "mark" ack that playback actually finished, we'd flip speaking_task_holder off
+        # the instant we're done sending, and any speech Deepgram picks up while the reply
+        # is still audibly playing (even the caller's own "hello?") triggers barge-in and
+        # clears the in-flight audio before the caller ever hears it.
+        try:
+            await asyncio.wait_for(call_state["mark_event"].wait(), timeout=15.0)
+        except asyncio.TimeoutError:
+            pass
     except asyncio.CancelledError:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -2519,7 +2535,7 @@ async def handle_voice_turn(ws: WebSocket, call_state: dict, transcript: str) ->
     speaking_state = {"active": True}
     call_state["speaking"] = speaking_state
     call_state["speak_task"] = asyncio.create_task(
-        speak_turn(ws, call_state["stream_sid"], call_state["call_sid"], phone, reply_text, should_transfer, speaking_state)
+        speak_turn(ws, call_state, reply_text, should_transfer, speaking_state)
     )
 
 
@@ -2606,7 +2622,16 @@ def webhook_voice_outbound(
 @app.websocket("/media-stream")
 async def media_stream(websocket: WebSocket) -> None:
     await websocket.accept()
-    call_state = {"phone": "unknown", "call_sid": None, "stream_sid": None, "history": [], "speaking": None, "speak_task": None}
+    call_state = {
+        "phone": "unknown",
+        "call_sid": None,
+        "stream_sid": None,
+        "history": [],
+        "speaking": None,
+        "speak_task": None,
+        "mark_event": asyncio.Event(),
+        "awaited_mark": None,
+    }
     deepgram_ws = None
     pump_task = None
 
@@ -2632,16 +2657,24 @@ async def media_stream(websocket: WebSocket) -> None:
 
                 pump_task = asyncio.create_task(pump_deepgram_transcripts(deepgram_ws, websocket, call_state))
 
+                # Record the greeting so the LLM won't re-introduce itself on the first turn.
+                call_state["history"].append({"role": "assistant", "content": greeting})
+
                 speaking_state = {"active": True}
                 call_state["speaking"] = speaking_state
                 call_state["speak_task"] = asyncio.create_task(
-                    speak_turn(websocket, call_state["stream_sid"], call_state["call_sid"], call_state["phone"], greeting, False, speaking_state)
+                    speak_turn(websocket, call_state, greeting, False, speaking_state)
                 )
 
             elif kind == "media":
                 payload = event.get("media", {}).get("payload")
                 if payload and deepgram_ws:
                     await deepgram_ws.send(base64.b64decode(payload))
+
+            elif kind == "mark":
+                mark_name = event.get("mark", {}).get("name")
+                if mark_name and mark_name == call_state.get("awaited_mark"):
+                    call_state["mark_event"].set()
 
             elif kind == "stop":
                 break
