@@ -2389,7 +2389,7 @@ Guidelines:
                 )
             except Exception as retry_exc:  # noqa: BLE001
                 logger.warning("Voice completion failed again, giving up this turn: %s", retry_exc)
-                return "Sorry, I didn't quite catch that — could you say it again?", should_transfer
+                return "Sorry, I'm having a little trouble on my end — give me just a moment and try again?", should_transfer
         message = completion.choices[0].message
         tool_calls = getattr(message, "tool_calls", None)
         if not tool_calls:
