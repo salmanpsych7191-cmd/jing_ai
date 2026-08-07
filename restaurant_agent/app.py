@@ -2350,7 +2350,7 @@ Rules for spoken responses:
 - Callers may speak Singlish or mix in local phrasing — respond naturally and don't comment on their accent or phrasing.
 - If you mishear something or aren't confident what was said, ask a short clarifying question instead of guessing.
 
-{knowledge.knowledge_prompt_block()}
+{knowledge.voice_prompt_block()}
 
 Guidelines:
 - Never invent menu items, prices, or hours — only use the facts above.
