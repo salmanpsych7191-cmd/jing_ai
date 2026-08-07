@@ -86,16 +86,31 @@ client = OpenAI(
     api_key=GROQ_API_KEY,
     base_url="https://api.groq.com/openai/v1",
 ) if GROQ_API_KEY else None
+
+# Voice calls hit Groq's free-tier per-minute token limit mid-conversation (confirmed in
+# production logs — real calls dropping turns). VOICE_LLM_PROVIDER switches the voice-only
+# LLM to a separate provider (Cerebras, which has its own separate rate-limit pool) without
+# touching the WhatsApp agent above. Set VOICE_LLM_PROVIDER=groq (or unset) to roll back
+# instantly via env var, no redeploy needed.
+VOICE_LLM_PROVIDER = os.getenv("VOICE_LLM_PROVIDER", "groq").lower()
+CEREBRAS_API_KEY = os.getenv("CEREBRAS_API_KEY", "")
+if VOICE_LLM_PROVIDER == "cerebras" and CEREBRAS_API_KEY:
+    VOICE_GROQ_MODEL = os.getenv("VOICE_GROQ_MODEL", "gemma-4-31b")
+    _voice_api_key = CEREBRAS_API_KEY
+    _voice_base_url = "https://api.cerebras.ai/v1"
+else:
+    _voice_api_key = GROQ_API_KEY
+    _voice_base_url = "https://api.groq.com/openai/v1"
 # Separate client for live calls: the default client's automatic retry-with-backoff on 429
 # waited up to 26s silently on a real call (confirmed in production logs) — dead air that
 # long makes a caller hang up. Voice fails fast instead and uses its own short retry so a
 # rate limit surfaces as "sorry, one more time?" in a couple seconds, not a dropped call.
 voice_client = OpenAI(
-    api_key=GROQ_API_KEY,
-    base_url="https://api.groq.com/openai/v1",
+    api_key=_voice_api_key,
+    base_url=_voice_base_url,
     max_retries=0,
     timeout=8.0,
-) if GROQ_API_KEY else None
+) if _voice_api_key else None
 # Persisted to the same Postgres database so scheduled reminders (24h/2h before a booking)
 # survive a process restart instead of silently vanishing from an in-memory job store.
 scheduler = BackgroundScheduler(
