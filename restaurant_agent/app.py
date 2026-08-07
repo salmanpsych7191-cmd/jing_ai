@@ -6,6 +6,7 @@ import json
 import os
 import re
 import secrets
+import time
 import uuid
 import logging
 from contextlib import contextmanager
@@ -2339,11 +2340,11 @@ def run_voice_agent_turn(phone: str, text: str, history: list[dict], outbound_pu
     today = now_local()
     outbound_block = (
         f"""
-This call was placed BY the restaurant TO this person — they didn't call in. The reason for calling: {outbound_purpose}.
-Drive the conversation toward that purpose instead of waiting passively: briefly introduce yourself and the restaurant,
-explain why you're calling, and guide the conversation toward it (e.g. asking about their interest, proposing next
-steps, or booking details) — while staying warm and conversational, not pushy or scripted-sounding. Only fall back to
-generic Q&A mode once the purpose of the call has actually been addressed.
+This call was placed BY the restaurant TO this person. The greeting has already been spoken (see conversation history) \
+— do NOT re-introduce yourself or repeat why you're calling. The reason for this call: {outbound_purpose}.
+Pick up from where the greeting left off: respond to what the person just said and guide the conversation toward \
+{outbound_purpose} (e.g. confirming interest, proposing next steps, or collecting booking details) — warm and \
+conversational, not pushy. Once the purpose has been addressed, answer questions normally.
 """
         if outbound_purpose
         else ""
@@ -2466,6 +2467,28 @@ async def clear_twilio_playback(ws: WebSocket, stream_sid: str) -> None:
         pass
 
 
+# Callers reflexively say "hello?" the instant they pick up, before they've heard
+# anything from us — that overlaps the very start of our own greeting/reply. Without
+# this grace window, that reflexive word triggers real barge-in and cancels audio
+# that was never actually given a chance to play, and since the caller still hasn't
+# heard anything they say "hello?" again, repeatedly cancelling every attempt.
+BARGE_IN_GRACE_SECONDS = 1.2
+
+
+async def cancel_current_speech(ws: WebSocket, call_state: dict) -> None:
+    speaking = call_state.get("speaking")
+    if speaking:
+        speaking["active"] = False
+    speak_task = call_state.get("speak_task")
+    if speak_task and not speak_task.done():
+        speak_task.cancel()
+        await clear_twilio_playback(ws, call_state["stream_sid"])
+        try:
+            await speak_task
+        except (asyncio.CancelledError, Exception):  # noqa: BLE001
+            pass
+
+
 def execute_call_transfer(call_sid: str, caller_phone: str) -> None:
     # Send a WhatsApp safety-net notification with the caller's contact — the live
     # transfer below may not connect (no answer, or blocked by trial-account
@@ -2532,8 +2555,15 @@ async def handle_voice_turn(ws: WebSocket, call_state: dict, transcript: str) ->
     history.append({"role": "assistant", "content": reply_text})
     call_state["history"] = history[-10:]
 
+    # A finalized transcript means the caller genuinely said something real, so any
+    # still-playing prior reply is now stale — cancel it outright regardless of the
+    # barge-in grace window (that window only debounces the early VAD trigger, it
+    # doesn't apply once we actually have real content to respond to).
+    await cancel_current_speech(ws, call_state)
+
     speaking_state = {"active": True}
     call_state["speaking"] = speaking_state
+    call_state["speak_started_at"] = time.monotonic()
     call_state["speak_task"] = asyncio.create_task(
         speak_turn(ws, call_state, reply_text, should_transfer, speaking_state)
     )
@@ -2552,11 +2582,9 @@ async def pump_deepgram_transcripts(deepgram_ws, ws: WebSocket, call_state: dict
         if event_type == "SpeechStarted":
             speaking = call_state.get("speaking")
             if speaking and speaking.get("active"):
-                speaking["active"] = False
-                speak_task = call_state.get("speak_task")
-                if speak_task and not speak_task.done():
-                    speak_task.cancel()
-                await clear_twilio_playback(ws, call_state["stream_sid"])
+                elapsed = time.monotonic() - call_state.get("speak_started_at", 0.0)
+                if elapsed >= BARGE_IN_GRACE_SECONDS:
+                    await cancel_current_speech(ws, call_state)
             continue
 
         if event_type != "Results":
@@ -2631,6 +2659,7 @@ async def media_stream(websocket: WebSocket) -> None:
         "speak_task": None,
         "mark_event": asyncio.Event(),
         "awaited_mark": None,
+        "speak_started_at": 0.0,
     }
     deepgram_ws = None
     pump_task = None
@@ -2662,6 +2691,7 @@ async def media_stream(websocket: WebSocket) -> None:
 
                 speaking_state = {"active": True}
                 call_state["speaking"] = speaking_state
+                call_state["speak_started_at"] = time.monotonic()
                 call_state["speak_task"] = asyncio.create_task(
                     speak_turn(websocket, call_state, greeting, False, speaking_state)
                 )
