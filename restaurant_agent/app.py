@@ -176,6 +176,8 @@ async def verify_twilio_request(request: Request) -> None:
     form = await request.form()
     base_url = PUBLIC_BASE_URL or str(request.base_url).rstrip("/")
     full_url = f"{base_url}{request.url.path}"
+    if request.url.query:
+        full_url = f"{full_url}?{request.url.query}"
     validator = RequestValidator(TWILIO_AUTH_TOKEN)
     if not validator.validate(full_url, dict(form), signature):
         raise HTTPException(status_code=403, detail="Invalid Twilio signature")
