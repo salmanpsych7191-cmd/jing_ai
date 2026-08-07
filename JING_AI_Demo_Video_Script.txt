@@ -1,0 +1,69 @@
+JING | Halal Hotpot & Grill Buffet — AI Agent Demo Video Script (40 seconds)
+================================================================================
+
+NARRATION SCRIPT WITH TIMING
+--------------------------------------------------------------------------------
+
+[0:00-0:06]
+Narration: "Meet JING's new front desk — an AI that never sleeps, answers
+WhatsApp and phone calls, and runs the whole reservation flow end to end."
+On-screen: Dashboard home — hero section, "JING | Halal Hotpot & Grill Buffet"
+branding, halal-certified badge.
+
+[0:06-0:16]
+Narration: "A customer calls in, asks if it's halal, checks the mala soup
+base — and books a table for four, all in natural conversation."
+On-screen: Voice / AI Assistant view — live chat exchange or a real call clip
+showing the AI answering the halal question and booking a table.
+
+[0:16-0:24]
+Narration: "The moment it's confirmed, the guest gets a WhatsApp
+confirmation — and staff get notified too, with the guest's contact and
+request."
+On-screen: Quick cut — WhatsApp confirmation message, then Bookings view
+showing the new reservation appear.
+
+[0:24-0:32]
+Narration: "Behind it, real-time capacity tracking across lunch and dinner
+sessions, live revenue, loyalty tiers, and a waitlist that fills itself when
+a session's full."
+On-screen: Dashboard KPI row (Seats Left, Revenue, Loyalty Members, Waitlist)
++ Bookings view capacity panel.
+
+[0:32-0:38]
+Narration: "Every soup base, price, and halal detail the AI shares comes
+straight from one place — the Menu & Buffet view — so staff and AI are
+always saying the same thing."
+On-screen: Menu & Buffet view — soup bases, pricing cards.
+
+[0:38-0:40]
+Narration: "JING's front desk. Always on."
+On-screen: Logo / hero card close-up.
+
+
+FEATURE LIST BY DASHBOARD SECTION (reference while recording)
+--------------------------------------------------------------------------------
+- Dashboard: live KPIs — today's bookings, seats left (of 90), completed
+  visits, loyalty members, AI conversations, revenue, active campaigns,
+  waitlist count.
+- Menu & Buffet: soup bases, proteins, pricing tiers by session/day, halal
+  statement, location/hours — same data source the AI uses, so it's never
+  out of sync.
+- Bookings: capacity gauge per session, waitlist panel, manual booking
+  entry, filterable reservation list.
+- Customers: loyalty points, Bronze/Silver/Gold tiers, visit history.
+- Reviews: AI-drafted responses to Google reviews.
+- Campaigns: outreach tools (reminders, review requests).
+- WhatsApp: live diagnostics, sandbox connection status.
+- Voice (Phone AI): inbound call handling, live readiness checklist,
+  outbound call trigger.
+- AI Assistant: test console for the same concierge that runs on
+  WhatsApp/phone.
+
+
+NOTE — WHAT TO LEAVE OUT OF THE DEMO
+--------------------------------------------------------------------------------
+Do not show live call TRANSFER — it's currently blocked by a Twilio Trial
+account restriction that's still being resolved. Everything else (booking,
+halal/menu Q&A, WhatsApp confirmations, staff notifications, dashboard
+views) is genuinely working and safe to show live.

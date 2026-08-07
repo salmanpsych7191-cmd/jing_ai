@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Restaurant Retail AI Agent - Presentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #06070b;
+        --card: rgba(18, 24, 34, 0.98);
+        --text: #f8f9ff;
+        --muted: #98a2b3;
+        --accent: #10b981;
+        --accent-2: #60a5fa;
+        --accent-3: #8b5cf6;
+        --accent-4: #f59e0b;
+        --border: rgba(255, 255, 255, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        font-family: "Manrope", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .bg-grid {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.35;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 44px 44px;
+      }
+
+      .slides {
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .slide {
+        min-width: 100vw;
+        min-height: 100vh;
+        padding: 60px 80px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+      }
+
+      .slide-content {
+        max-width: 1100px;
+        width: 100%;
+        margin: 0 auto;
+      }
+
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-size: 0.85rem;
+        color: var(--accent-2);
+        font-weight: 700;
+        margin: 0 0 16px;
+      }
+
+      h1 {
+        font-family: "Fraunces", Georgia, serif;
+        font-size: clamp(3rem, 6vw, 5rem);
+        margin: 0 0 20px;
+        line-height: 1.05;
+        background: linear-gradient(135deg, var(--text) 0%, var(--accent-2) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      h2 {
+        font-family: "Fraunces", Georgia, serif;
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        margin: 0 0 32px;
+        line-height: 1.1;
+      }
+
+      h3 {
+        font-size: 1.4rem;
+        margin: 0 0 12px;
+        color: var(--text);
+      }
+
+      p {
+        font-size: 1.25rem;
+        line-height: 1.7;
+        color: var(--muted);
+        margin: 0 0 20px;
+        max-width: 80ch;
+      }
+
+      .subtitle {
+        font-size: 1.5rem;
+        color: var(--muted);
+      }
+
+      .meta {
+        display: flex;
+        gap: 32px;
+        margin-top: 40px;
+        font-size: 1rem;
+        color: var(--muted);
+      }
+
+      .meta span {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+        margin-top: 8px;
+      }
+
+      .feature-card {
+        padding: 28px;
+        border-radius: 24px;
+        background: var(--card);
+        border: 1px solid var(--border);
+      }
+
+      .feature-card .icon {
+        width: 48px;
+        height: 48px;
+        display: grid;
+        place-items: center;
+        border-radius: 14px;
+        font-size: 1.3rem;
+        margin-bottom: 16px;
+      }
+
+      .feature-card p {
+        font-size: 1rem;
+        margin: 0;
+      }
+
+      .icon.emerald { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; }
+      .icon.blue { background: rgba(96, 165, 250, 0.18); color: #93c5fd; }
+      .icon.purple { background: rgba(139, 92, 246, 0.18); color: #c4b5fd; }
+      .icon.orange { background: rgba(245, 158, 11, 0.18); color: #fcd34d; }
+
+      ul {
+        margin: 0;
+        padding-left: 24px;
+        font-size: 1.2rem;
+        line-height: 1.9;
+        color: var(--muted);
+      }
+
+      li {
+        margin-bottom: 8px;
+      }
+
+      .impact-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 24px;
+        margin-top: 8px;
+      }
+
+      .impact-card {
+        padding: 32px;
+        border-radius: 24px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        text-align: center;
+      }
+
+      .impact-card strong {
+        display: block;
+        font-size: 2.5rem;
+        margin-bottom: 8px;
+        background: linear-gradient(135deg, var(--accent-4), var(--accent));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .impact-card span {
+        color: var(--muted);
+        font-size: 1rem;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 48px;
+        align-items: start;
+      }
+
+      .demo-placeholder {
+        aspect-ratio: 16 / 10;
+        border-radius: 20px;
+        background: linear-gradient(135deg, rgba(96, 165, 250, 0.15), rgba(16, 185, 129, 0.15));
+        border: 1px solid var(--border);
+        display: grid;
+        place-items: center;
+        font-size: 1.1rem;
+        color: var(--muted);
+      }
+
+      .demo-screenshot {
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      }
+
+      .demo-screenshot img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      .demo-list {
+        display: grid;
+        gap: 16px;
+      }
+
+      .demo-item {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        padding: 20px;
+        border-radius: 16px;
+        background: var(--card);
+        border: 1px solid var(--border);
+      }
+
+      .demo-number {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(96, 165, 250, 0.18);
+        color: var(--accent-2);
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      .demo-item div {
+        font-size: 1.05rem;
+        line-height: 1.6;
+      }
+
+      .demo-item strong {
+        color: var(--text);
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .navigation {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 12px 20px;
+        border-radius: 999px;
+        background: rgba(15, 20, 28, 0.95);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(24px);
+        z-index: 100;
+      }
+
+      .navigation button {
+        border: 0;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        padding: 10px 18px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.2s ease;
+      }
+
+      .navigation button:hover {
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .slide-counter {
+        color: var(--muted);
+        font-size: 0.9rem;
+        min-width: 60px;
+        text-align: center;
+      }
+
+      .progress-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        transition: width 0.3s ease;
+        z-index: 100;
+      }
+
+      @media (max-width: 900px) {
+        .slide {
+          padding: 40px;
+        }
+
+        .feature-grid,
+        .impact-grid,
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <div class="progress-bar" id="progressBar"></div>
+
+    <div class="slides" id="slides">
+      <!-- Slide 1: Title -->
+      <section class="slide">
+        <div class="slide-content">
+          <p class="eyebrow">Final Year Project Presentation</p>
+          <h1>Restaurant Retail AI Agent</h1>
+          <p class="subtitle">An AI-powered WhatsApp concierge for restaurants and retail</p>
+          <div class="meta">
+            <span>👤 Your Name</span>
+            <span>📅 July 2026</span>
+            <span>🎓 Computer Science</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 2: Problem Statement -->
+      <section class="slide">
+        <div class="slide-content">
+          <p class="eyebrow">Problem Statement</p>
+          <h2>Restaurants lose bookings & revenue to manual front-desk work</h2>
+          <ul>
+            <li>Staff miss phone calls and WhatsApp messages during peak hours.</li>
+            <li>Reservations are tracked on paper or spreadsheets, causing double-bookings.</li>
+            <li>Follow-ups (reminders, review requests, loyalty updates) are forgotten.</li>
+            <li>Customer data is scattered, so personalized service is nearly impossible.</li>
+            <li>Small restaurants cannot afford 24/7 human reception.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Slide 3: Target Customer -->
+      <section class="slide">
+        <div class="slide-content">
+          <p class="eyebrow">Target Customer</p>
+          <h2>Who is this built for?</h2>
+          <div class="two-col">
+            <div>
+              <h3>Primary: Independent Restaurants</h3>
+              <ul>
+                <li>Family-owned cafés and biryani houses</li>
+                <li>Fine-dining restaurants with no full-time reservation team</li>
+                <li>Cloud kitchens that take orders on WhatsApp</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Secondary: Retail & Quick-Service</h3>
+              <ul>
+                <li>Bakeries and sweet shops with repeat customers</li>
+                <li>Small retail brands needing repurchase reminders</li>
+                <li>Any business that wants automated customer follow-up</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 4: Your AI Solution -->
+      <section class="slide">
+        <div class="slide-content">
+          <p class="eyebrow">Your AI Solution</p>
+          <h2>A 24/7 AI concierge on WhatsApp</h2>
+          <p>
+            The Restaurant Retail AI Agent handles reservations, reminders, reviews, and loyalty — all through a single WhatsApp number and a staff dashboard.
+          </p>
+          <div class="two-col" style="margin-top: 24px;">
+            <div>
+              <h3>How it works</h3>
+              <ul>
+                <li>Guest messages the restaurant on WhatsApp.</li>
+                <li>Groq LLM understands intent and guides the conversation.</li>
+                <li>Booking is saved to a SQLite database.</li>
+                <li>Twilio sends confirmations, reminders, and review links.</li>
+                <li>Staff manage everything from a web dashboard.</li>
+              </ul>
+            </div>
+            <div class="demo-placeholder">
+              Architecture: WhatsApp → Twilio → FastAPI → Groq + SQLite
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 5: Key Features -->
+      <section class="slide">
+        <div class="slide-content">
+          <p class="eyebrow">Key Features</p>
+          <h2>Core capabilities</h2>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="icon emerald">◌</div>
+              <h3>WhatsApp Booking</h3>
+              <p>Guests book tables by chatting naturally. The AI captures date, time, party size, and special requests.</p>
+            </div>
+            <div class="feature-card">
+              <div class="icon blue">↺</div>
+              <h3>Automated Reminders</h3>
+              <p>24-hour and 2-hour reminder messages reduce no-shows without manual effort.</p>
+            </div>
+            <div class="feature-card">
+              <div class="icon purple">✦</div>
+              <h3>Review Requests</h3>
+              <p>After a visit, the AI sends a Google Maps review link to build online reputation.</p>
+            </div>
+            <div class="feature-card">
+              <div class="icon orange">⬢</div>
+              <h3>Loyalty Program</h3>
+              <p>Points are awarded automatically based on bill amount, unlocking vouchers at a threshold.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 6: Demo Walkthrough -->
+      <section class="slide">
+        <div class="slide-content">
+          <p class="eyebrow">Demo Walkthrough</p>
+          <h2>See it in action</h2>
+          <div class="two-col">
+            <div class="demo-list">
+              <div class="demo-item">
+                <div class="demo-number">1</div>
+                <div>
+                  <strong>Guest starts on WhatsApp</strong>
+                  "I want to book a table for 4 tomorrow at 7 pm"
+                </div>
+              </div>
+              <div class="demo-item">
+                <div class="demo-number">2</div>
+                <div>
+                  <strong>AI confirms details</strong>
+                  Name, date, time, guests, and special requests are collected.
+                </div>
+              </div>
+              <div class="demo-item">
+                <div class="demo-number">3</div>
+                <div>
+                  <strong>Staff mark visit complete</strong>
+                  The dashboard updates loyalty and sends a review link.
+                </div>
+              </div>
+              <div class="demo-item">
+                <div class="demo-number">4</div>
+                <div>
+                  <strong>Live analytics</strong>
+                  KPIs show real bookings, revenue, and campaigns.
+                </div>
+              </div>
+            </div>
+            <div class="demo-screenshot">
+              <img src="dashboard-screenshot.png" alt="Staff dashboard showing visit actions and booking management" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 7: Business Impact -->
+      <section class="slide">
+        <div class="slide-content">
+          <p class="eyebrow">Business Impact</p>
+          <h2>Why this matters</h2>
+          <div class="impact-grid">
+            <div class="impact-card">
+              <strong>40%</strong>
+              <span>Reduction in missed bookings</span>
+            </div>
+            <div class="impact-card">
+              <strong>5 hrs</strong>
+              <span>Staff time saved per week</span>
+            </div>
+            <div class="impact-card">
+              <strong>3x</strong>
+              <span>More Google reviews requested</span>
+            </div>
+          </div>
+          <p style="margin-top: 32px;">
+            By automating the front desk, restaurants can reallocate staff to service quality while capturing more reservations, reducing no-shows, and driving repeat visits through loyalty rewards.
+          </p>
+        </div>
+      </section>
+
+      <!-- Slide 8: Challenges & Next Steps -->
+      <section class="slide">
+        <div class="slide-content">
+          <p class="eyebrow">Challenges & Next Steps</p>
+          <h2>What comes next</h2>
+          <div class="two-col">
+            <div>
+              <h3>Challenges faced</h3>
+              <ul>
+                <li>WhatsApp sandbox limits for production delivery.</li>
+                <li>Making the LLM handle noisy user input reliably.</li>
+                <li>Handling timezone and date parsing edge cases.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Future improvements</h3>
+              <ul>
+                <li>Integration with official WhatsApp Business API.</li>
+                <li>Multi-language support for diverse customers.</li>
+                <li>Voice call booking via Twilio Voice.</li>
+                <li>Table availability and floor-map management.</li>
+                <li>Payment and pre-order integration.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="navigation">
+      <button id="prevBtn" type="button">← Previous</button>
+      <span class="slide-counter" id="slideCounter">1 / 8</span>
+      <button id="nextBtn" type="button">Next →</button>
+    </div>
+
+    <script>
+      const slides = document.getElementById('slides');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const slideCounter = document.getElementById('slideCounter');
+      const progressBar = document.getElementById('progressBar');
+
+      let currentSlide = 0;
+      const totalSlides = 8;
+
+      function updateSlide() {
+        slides.style.transform = `translateX(-${currentSlide * 100}vw)`;
+        slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+        progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+      }
+
+      function nextSlide() {
+        if (currentSlide < totalSlides - 1) {
+          currentSlide += 1;
+          updateSlide();
+        }
+      }
+
+      function prevSlide() {
+        if (currentSlide > 0) {
+          currentSlide -= 1;
+          updateSlide();
+        }
+      }
+
+      nextBtn.addEventListener('click', nextSlide);
+      prevBtn.addEventListener('click', prevSlide);
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowRight' || event.key === ' ') {
+          event.preventDefault();
+          nextSlide();
+        } else if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          prevSlide();
+        }
+      });
+
+      updateSlide();
+    </script>
+  </body>
+</html>

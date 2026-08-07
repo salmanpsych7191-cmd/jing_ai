@@ -1,0 +1,30 @@
+# Secrets - never commit
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv*/
+venv/
+
+# Database (contains real customer data locally; production uses Postgres)
+*.db
+*.db-journal
+
+# Build/deploy artifacts
+.deploy_package/
+.deploy_package_dashboard/
+*.zip
+
+# Large/unrelated binaries and debug artifacts accumulated during local testing
+cloudflared.exe
+*.log
+dash_docker_latest.log
+
+node_modules/
+
+# Local Claude Code session/settings
+.claude/
+
