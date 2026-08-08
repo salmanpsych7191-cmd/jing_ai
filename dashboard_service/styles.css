@@ -1,23 +1,28 @@
 :root {
   color-scheme: dark;
-  --bg: #0b0807;
-  --bg-soft: rgba(255, 255, 255, 0.04);
-  --card: rgba(30, 20, 17, 0.92);
-  --card-strong: rgba(34, 23, 19, 0.97);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-warm: rgba(232, 180, 96, 0.14);
-  --text: #f9efe3;
-  --muted: #b6a696;
-  --accent: #d8442c;
-  --accent-soft: #ef6a4a;
-  --accent-2: #2c9469;
-  --accent-3: #8a2b49;
-  --accent-4: #e8b450;
-  --accent-4-bright: #f6cf75;
-  --danger: #d64545;
-  --shadow: 0 28px 90px rgba(0, 0, 0, 0.5);
-  --shadow-soft: 0 12px 40px rgba(0, 0, 0, 0.35);
-  --glow: 0 0 44px rgba(232, 180, 80, 0.18);
+  /* Deliberately narrow palette: one bronze/gold accent family plus two muted,
+     strictly-semantic colors (sage for positive, brick for negative). The previous
+     pass used six fully-saturated hues for decoration (icon backgrounds, glows,
+     gradients) which read as a busy admin-panel template rather than a restrained
+     hospitality brand - quiet luxury comes from repetition and restraint, not variety. */
+  --bg: #0c0a08;
+  --bg-soft: rgba(255, 255, 255, 0.03);
+  --card: rgba(22, 18, 15, 0.82);
+  --card-strong: rgba(26, 21, 17, 0.92);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-warm: rgba(201, 160, 90, 0.16);
+  --text: #ece3d6;
+  --muted: #9c8f7e;
+  --accent: #b8874a;
+  --accent-soft: #d4a86a;
+  --accent-2: #6f8f7a;
+  --accent-3: #7a5245;
+  --accent-4: #c9a05a;
+  --accent-4-bright: #e2c383;
+  --danger: #a3564a;
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  --shadow-soft: 0 8px 28px rgba(0, 0, 0, 0.3);
+  --glow: 0 0 32px rgba(201, 160, 90, 0.1);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -34,23 +39,20 @@ body {
   margin: 0;
   font-family: "Manrope", system-ui, sans-serif;
   background:
-    radial-gradient(ellipse 900px 600px at 8% -5%, rgba(216, 68, 44, 0.24), transparent 55%),
-    radial-gradient(ellipse 700px 500px at 105% -10%, rgba(232, 180, 80, 0.20), transparent 55%),
-    radial-gradient(ellipse 800px 600px at 40% 115%, rgba(138, 43, 73, 0.20), transparent 55%),
-    radial-gradient(ellipse 600px 500px at 100% 60%, rgba(44, 148, 105, 0.10), transparent 60%),
-    linear-gradient(160deg, #0b0807 0%, #1c130f 45%, #150e0b 100%);
+    radial-gradient(ellipse 1100px 700px at 50% -15%, rgba(201, 160, 90, 0.08), transparent 60%),
+    linear-gradient(175deg, #0c0a08 0%, #17120e 55%, #100d0a 100%);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle film-grain texture for tactile depth on the dark surface — a fine dusting
-   of noise reads as premium rather than flat, without needing an external image asset. */
+/* Barely-there film-grain texture for tactile depth on the dark surface - a fine
+   dusting of noise, not a decoration in its own right. */
 .bg-grain {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.05;
+  opacity: 0.035;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
@@ -107,7 +109,7 @@ body {
   font-family: "Fraunces", Georgia, serif;
   font-weight: 700;
   font-size: 1.3rem;
-  box-shadow: 0 8px 24px rgba(216, 68, 44, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(184, 135, 74, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
 }
 
 .nav-list {
@@ -140,7 +142,7 @@ body {
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, rgba(224, 67, 46, 0.22), rgba(240, 180, 41, 0.14));
+  background: linear-gradient(135deg, rgba(184, 135, 74, 0.22), rgba(201, 160, 90, 0.14));
   color: var(--text);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), var(--glow);
   transform: translateX(3px);
@@ -165,8 +167,8 @@ body {
   margin-top: 24px;
   padding: 18px;
   border-radius: 20px;
-  background: linear-gradient(135deg, rgba(47, 158, 110, 0.16), rgba(240, 180, 41, 0.12));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(201, 160, 90, 0.07);
+  border: 1px solid var(--border-warm);
   box-shadow: var(--shadow);
 }
 
@@ -209,8 +211,8 @@ body {
 }
 
 .search-box:focus-within {
-  border-color: rgba(240, 180, 41, 0.4);
-  box-shadow: 0 0 0 4px rgba(240, 180, 41, 0.12);
+  border-color: rgba(201, 160, 90, 0.4);
+  box-shadow: 0 0 0 4px rgba(201, 160, 90, 0.12);
 }
 
 .search-box input {
@@ -252,7 +254,7 @@ body {
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent-4), var(--accent-3));
   font-weight: 700;
-  box-shadow: 0 6px 20px rgba(138, 43, 73, 0.3);
+  box-shadow: 0 6px 20px rgba(122, 82, 69, 0.3);
 }
 
 .view {
@@ -315,7 +317,7 @@ body {
   border: 1px solid var(--border-warm);
   background:
     linear-gradient(135deg, rgba(34, 22, 18, 0.97), rgba(16, 10, 8, 0.99)),
-    radial-gradient(ellipse 480px 320px at 100% 0%, rgba(216, 68, 44, 0.22), transparent 60%),
+    radial-gradient(ellipse 480px 320px at 100% 0%, rgba(184, 135, 74, 0.22), transparent 60%),
     radial-gradient(ellipse 420px 320px at 0% 100%, rgba(232, 180, 80, 0.14), transparent 60%);
 }
 
@@ -373,9 +375,9 @@ body {
 }
 
 .halal-badge {
-  background: rgba(47, 158, 110, 0.16);
-  border: 1px solid rgba(47, 158, 110, 0.3);
-  color: #8fe0bb;
+  background: rgba(111, 143, 122, 0.14);
+  border: 1px solid rgba(111, 143, 122, 0.3);
+  color: #a9c2b3;
 }
 
 .assistant-launch-btn {
@@ -384,16 +386,16 @@ body {
   border-radius: 16px;
   padding: 14px 26px;
   background: linear-gradient(135deg, var(--accent-4-bright), var(--accent));
-  color: #1a0a06;
+  color: #1a0f08;
   font-weight: 700;
   font-size: 1rem;
-  box-shadow: 0 12px 32px rgba(216, 68, 44, 0.3);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
   transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
 }
 
 .assistant-launch-btn:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 18px 44px rgba(216, 68, 44, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
 }
 
 .dot {
@@ -401,16 +403,16 @@ body {
   height: 9px;
   border-radius: 50%;
   background: var(--accent-2);
-  box-shadow: 0 0 0 6px rgba(47, 158, 110, 0.14);
+  box-shadow: 0 0 0 6px rgba(111, 143, 122, 0.14);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
   0%, 100% {
-    box-shadow: 0 0 0 4px rgba(47, 158, 110, 0.16);
+    box-shadow: 0 0 0 4px rgba(111, 143, 122, 0.16);
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(47, 158, 110, 0.05);
+    box-shadow: 0 0 0 8px rgba(111, 143, 122, 0.05);
   }
 }
 
@@ -478,7 +480,7 @@ body {
 
 .kpi-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(240, 180, 41, 0.35);
+  border-color: rgba(201, 160, 90, 0.35);
   box-shadow: var(--shadow), var(--glow);
 }
 
@@ -493,34 +495,17 @@ body {
   flex-shrink: 0;
 }
 
-.kpi-icon.emerald {
-  background: rgba(47, 158, 110, 0.18);
-  color: #7fe0b6;
-}
-
-.kpi-icon.blue {
-  background: rgba(240, 180, 41, 0.18);
-  color: #f6cf75;
-}
-
-.kpi-icon.purple {
-  background: rgba(138, 43, 73, 0.24);
-  color: #eaa3bd;
-}
-
-.kpi-icon.orange {
-  background: rgba(224, 67, 46, 0.18);
-  color: #f3a48c;
-}
-
-.kpi-icon.teal {
-  background: rgba(94, 163, 146, 0.2);
-  color: #93d9c4;
-}
-
+/* One restrained gold tone for every KPI icon, regardless of the class name still
+   used in the markup - the icon glyph itself carries the meaning, color doesn't need
+   to. A row of six different hues here was the single biggest "template" tell. */
+.kpi-icon.emerald,
+.kpi-icon.blue,
+.kpi-icon.purple,
+.kpi-icon.orange,
+.kpi-icon.teal,
 .kpi-icon.red {
-  background: rgba(224, 67, 46, 0.22);
-  color: #ffb4a0;
+  background: rgba(201, 160, 90, 0.14);
+  color: var(--accent-4-bright);
 }
 
 .badge {
@@ -535,43 +520,43 @@ body {
 }
 
 .badge.blue {
-  background: rgba(240, 180, 41, 0.16);
-  color: #f6cf75;
+  background: rgba(201, 160, 90, 0.14);
+  color: var(--accent-4-bright);
 }
 
 .badge.emerald {
-  background: rgba(47, 158, 110, 0.16);
-  color: #7fe0b6;
+  background: rgba(111, 143, 122, 0.16);
+  color: #a9c2b3;
 }
 
 .badge.red {
-  background: rgba(224, 67, 46, 0.18);
-  color: #ffb4a0;
+  background: rgba(163, 86, 74, 0.18);
+  color: #d4a196;
 }
 
 .badge.orange {
-  background: rgba(224, 67, 46, 0.16);
-  color: #f3a48c;
+  background: rgba(163, 86, 74, 0.14);
+  color: #cfa08f;
 }
 
 .badge.muted {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--muted);
 }
 
 .badge.tier-bronze {
-  background: rgba(176, 122, 74, 0.2);
-  color: #d8a877;
+  background: rgba(122, 82, 69, 0.22);
+  color: #c99b83;
 }
 
 .badge.tier-silver {
-  background: rgba(196, 203, 214, 0.18);
-  color: #d7dde6;
+  background: rgba(255, 255, 255, 0.1);
+  color: #d3cabc;
 }
 
 .badge.tier-gold {
-  background: rgba(240, 180, 41, 0.22);
-  color: #f6cf75;
+  background: rgba(201, 160, 90, 0.2);
+  color: var(--accent-4-bright);
 }
 
 .tier-legend {
@@ -602,7 +587,7 @@ body {
 }
 
 .trend.up {
-  color: #7fe0b6;
+  color: #a9c2b3;
 }
 
 .content-grid {
@@ -684,7 +669,7 @@ body {
 .shortcut-card:hover {
   background: rgba(255, 255, 255, 0.07);
   transform: translateY(-2px);
-  border-color: rgba(240, 180, 41, 0.28);
+  border-color: rgba(201, 160, 90, 0.28);
 }
 
 .shortcut-icon {
@@ -693,7 +678,7 @@ body {
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: rgba(240, 180, 41, 0.15);
+  background: rgba(201, 160, 90, 0.15);
   margin-bottom: 10px;
   font-size: 1rem;
 }
@@ -749,8 +734,8 @@ body {
 }
 
 .info-panel {
-  background: rgba(240, 180, 41, 0.05);
-  border-color: rgba(240, 180, 41, 0.14);
+  background: rgba(201, 160, 90, 0.05);
+  border-color: rgba(201, 160, 90, 0.14);
 }
 
 .info-list {
@@ -837,8 +822,8 @@ body {
 }
 
 .chip:hover {
-  background: rgba(240, 180, 41, 0.16);
-  border-color: rgba(240, 180, 41, 0.3);
+  background: rgba(201, 160, 90, 0.16);
+  border-color: rgba(201, 160, 90, 0.3);
   transform: translateY(-1px);
 }
 
@@ -923,7 +908,7 @@ body {
 .sandbox-card {
   padding: 16px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(47, 158, 110, 0.14), rgba(240, 180, 41, 0.12));
+  background: linear-gradient(135deg, rgba(47, 158, 110, 0.14), rgba(201, 160, 90, 0.12));
   border: 1px solid rgba(255, 255, 255, 0.08);
   margin-bottom: 12px;
 }
@@ -968,12 +953,12 @@ body {
 .message.system {
   align-self: center;
   color: #f6cf75;
-  background: rgba(240, 180, 41, 0.14);
+  background: rgba(201, 160, 90, 0.14);
 }
 
 .message.user {
   align-self: end;
-  background: linear-gradient(135deg, rgba(224, 67, 46, 0.95), rgba(240, 180, 41, 0.85));
+  background: linear-gradient(135deg, rgba(184, 135, 74, 0.95), rgba(201, 160, 90, 0.85));
   color: white;
 }
 
@@ -1015,8 +1000,8 @@ select {
 
 input:focus,
 select:focus {
-  border-color: rgba(240, 180, 41, 0.45);
-  box-shadow: 0 0 0 4px rgba(240, 180, 41, 0.12);
+  border-color: rgba(201, 160, 90, 0.45);
+  box-shadow: 0 0 0 4px rgba(201, 160, 90, 0.12);
 }
 
 .compact-select {
@@ -1048,7 +1033,7 @@ select:focus {
 
 .primary-btn:hover {
   transform: translateY(-2px) scale(1.015);
-  box-shadow: 0 14px 32px rgba(216, 68, 44, 0.3);
+  box-shadow: 0 14px 32px rgba(184, 135, 74, 0.3);
 }
 
 .secondary-btn {
