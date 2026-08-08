@@ -54,7 +54,20 @@ LOYALTY_THRESHOLD = int(os.getenv("LOYALTY_THRESHOLD", "500"))
 LOYALTY_REWARD_PCT = int(os.getenv("LOYALTY_REWARD_PCT", "20"))
 SEATING_CAPACITY = int(os.getenv("SEATING_CAPACITY", str(knowledge.RESTAURANT_PROFILE["seating_capacity"])))
 BUFFET_DURATION_MINUTES = int(os.getenv("BUFFET_DURATION_MINUTES", str(knowledge.RESTAURANT_PROFILE["buffet_duration_minutes"])))
-DEEPGRAM_TTS_MODEL = os.getenv("DEEPGRAM_TTS_MODEL", "aura-2-luna-en")
+# Aura-1 (not the newer Aura-2) per explicit request. Six voices available for
+# DEEPGRAM_TTS_MODEL: aura-asteria-en (default, female), aura-luna-en (female),
+# aura-stella-en (female), aura-athena-en (female), aura-hera-en (female), aura-orion-en (male).
+AURA_VOICES = [
+    "aura-asteria-en", "aura-luna-en", "aura-stella-en",
+    "aura-athena-en", "aura-hera-en", "aura-orion-en",
+]
+DEEPGRAM_TTS_MODEL = os.getenv("DEEPGRAM_TTS_MODEL", "aura-asteria-en")
+# Fixed inbound greeting text — pre-synthesized once at server startup (see
+# presynthesize_greeting()) so the very first thing a caller hears plays instantly
+# instead of waiting on a live TTS round-trip. Outbound greetings are personalized
+# per-call (guest name + purpose) so they can't be pre-cached the same way.
+INBOUND_GREETING_TEXT = f"Hi there, thanks so much for calling {RESTAURANT_NAME}! What can I help you with today?"
+_presynthesized_greeting_audio: Optional[bytes] = None
 VOICE_GROQ_MODEL = os.getenv("VOICE_GROQ_MODEL") or os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 TWILIO_VOICE_NUMBER = os.getenv("TWILIO_VOICE_NUMBER", "")
 STAFF_TRANSFER_NUMBER = os.getenv("STAFF_TRANSFER_NUMBER", "")
@@ -489,6 +502,20 @@ def init_db() -> None:
         )
         _seed_default_tables(conn)
 
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS call_analysis (
+                id TEXT PRIMARY KEY,
+                call_sid TEXT,
+                phone TEXT NOT NULL,
+                direction TEXT NOT NULL,
+                extracted_json TEXT NOT NULL,
+                transcript TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+
 
 def _seed_default_tables(conn) -> None:
     """Seed a starter floor plan matching JING's verified 90-seat capacity (individual mini
@@ -510,8 +537,9 @@ def _seed_default_tables(conn) -> None:
 
 
 @app.on_event("startup")
-def startup() -> None:
+async def startup() -> None:
     init_db()
+    await presynthesize_greeting()
 
 
 # Run once at import time too, since test clients and some ASGI runners never
@@ -2258,6 +2286,7 @@ def voice_diagnostics() -> dict:
         "deepgram_configured": bool(DEEPGRAM_API_KEY),
         "stt_model": DEEPGRAM_MODEL,
         "tts_model": DEEPGRAM_TTS_MODEL,
+        "tts_voices_available": AURA_VOICES,
         "voice_llm_model": VOICE_GROQ_MODEL,
         "twilio_voice_number": TWILIO_VOICE_NUMBER or None,
         "twilio_voice_number_owned": voice_number_owned,
@@ -2441,15 +2470,153 @@ Guidelines:
     return fallback, should_transfer
 
 
+_NUMBER_ONES = [
+    "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+    "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen",
+]
+_NUMBER_TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+
+
+def _int_to_words(n: int) -> str:
+    if n < 20:
+        return _NUMBER_ONES[n]
+    if n < 100:
+        tens, rem = divmod(n, 10)
+        return _NUMBER_TENS[tens] + (f" {_NUMBER_ONES[rem]}" if rem else "")
+    if n < 1000:
+        hundreds, rem = divmod(n, 100)
+        return f"{_NUMBER_ONES[hundreds]} hundred" + (f" {_int_to_words(rem)}" if rem else "")
+    if n < 1_000_000:
+        thousands, rem = divmod(n, 1000)
+        return f"{_int_to_words(thousands)} thousand" + (f" {_int_to_words(rem)}" if rem else "")
+    return str(n)
+
+
+_CURRENCY_RE = re.compile(r"S?\$\s?(\d[\d,]*)(?:\.(\d{2}))?")
+_TIME_RE = re.compile(r"\b(\d{1,2})(?::(\d{2}))?\s?([APap]\.?[Mm]\.?)\b")
+
+
+def _currency_to_words(match: "re.Match") -> str:
+    dollars = int(match.group(1).replace(",", ""))
+    cents = match.group(2)
+    words = f"{_int_to_words(dollars)} dollar" + ("" if dollars == 1 else "s")
+    if cents and int(cents) > 0:
+        cents_val = int(cents)
+        words += f" and {_int_to_words(cents_val)} cent" + ("" if cents_val == 1 else "s")
+    return words
+
+
+def _time_to_words(match: "re.Match") -> str:
+    hour = int(match.group(1))
+    minute = match.group(2)
+    meridiem = match.group(3).upper().replace(".", "")
+    hour_words = _int_to_words(hour)
+    if minute and int(minute) > 0:
+        minute_val = int(minute)
+        minute_words = f"oh {_NUMBER_ONES[minute_val]}" if minute_val < 10 else _int_to_words(minute_val)
+        return f"{hour_words} {minute_words} {meridiem}"
+    return f"{hour_words} {meridiem}"
+
+
+def normalize_for_tts(text: str) -> str:
+    """Rewrite currency and clock-time patterns into words TTS pronounces naturally
+    (e.g. "$150" -> "one hundred fifty dollars", "3pm" -> "three PM")."""
+    text = _CURRENCY_RE.sub(_currency_to_words, text)
+    text = _TIME_RE.sub(_time_to_words, text)
+    return text
+
+
 async def deepgram_tts(text: str) -> bytes:
     async with httpx.AsyncClient(timeout=20.0) as http_client:
         response = await http_client.post(
             f"https://api.deepgram.com/v1/speak?model={DEEPGRAM_TTS_MODEL}&encoding=mulaw&sample_rate=8000",
             headers={"Authorization": f"Token {DEEPGRAM_API_KEY}", "Content-Type": "application/json"},
-            json={"text": text},
+            json={"text": normalize_for_tts(text)},
         )
         response.raise_for_status()
         return response.content
+
+
+async def presynthesize_greeting() -> None:
+    """Synthesize the fixed inbound greeting once at startup so the first caller of the
+    day doesn't pay for a live TTS round-trip before hearing anything."""
+    global _presynthesized_greeting_audio
+    if not DEEPGRAM_API_KEY:
+        return
+    try:
+        _presynthesized_greeting_audio = await deepgram_tts(INBOUND_GREETING_TEXT)
+        logger.info("Pre-synthesized inbound greeting audio at startup (%d bytes)", len(_presynthesized_greeting_audio))
+    except Exception as exc:  # noqa: BLE001 - falls back to live synthesis per-call
+        logger.warning("Could not pre-synthesize greeting at startup, will synthesize live: %s", exc)
+
+
+# asyncio only holds a weak reference to a task started via create_task — without
+# keeping a strong reference somewhere, a fire-and-forget task can be garbage-collected
+# mid-run. This set exists purely to keep background tasks (like post-call analysis)
+# alive until they finish, then drops them via the done callback.
+_background_tasks: set = set()
+
+
+def _fire_and_forget(coro) -> None:
+    task = asyncio.create_task(coro)
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
+
+async def analyze_call_transcript(call_state: dict) -> None:
+    """Post-call: ask the LLM to extract structured booking details from the transcript
+    and store them for later review (e.g. a future daily digest). Best-effort — must
+    never raise, since this runs after the call has already ended."""
+    history = call_state.get("history") or []
+    if len(history) <= 1 or not voice_client:
+        # Only the greeting was said (or nothing at all) - no real conversation to extract.
+        return
+
+    transcript_text = "\n".join(f"{turn['role']}: {turn['content']}" for turn in history)
+    extraction_prompt = f"""
+Extract booking details from this restaurant phone call transcript. Respond with ONLY a JSON object,
+no other text, using exactly this shape:
+{{"guest_name": string or null, "date": string or null, "time": string or null, "party_size": number or null,
+"special_requests": string or null, "booking_confirmed": boolean, "summary": string}}
+Use null for anything not mentioned. "summary" is one short sentence describing the outcome of the call.
+
+Transcript:
+{transcript_text}
+""".strip()
+
+    try:
+        completion = await asyncio.to_thread(
+            voice_client.chat.completions.create,
+            model=VOICE_GROQ_MODEL,
+            messages=[{"role": "user", "content": extraction_prompt}],
+            temperature=0.1,
+            max_tokens=200,
+        )
+        raw = (completion.choices[0].message.content or "").strip()
+        raw = re.sub(r"^```(?:json)?|```$", "", raw, flags=re.MULTILINE).strip()
+        extracted = json.loads(raw)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Post-call analysis failed for %s: %s", call_state.get("phone"), exc)
+        return
+
+    try:
+        with db() as conn:
+            conn.execute(
+                "INSERT INTO call_analysis (id, call_sid, phone, direction, extracted_json, transcript, created_at) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                (
+                    str(uuid.uuid4()),
+                    call_state.get("call_sid"),
+                    call_state.get("phone"),
+                    "outbound" if call_state.get("outbound") else "inbound",
+                    json.dumps(extracted),
+                    transcript_text,
+                    now_iso(),
+                ),
+            )
+        logger.info("Post-call analysis stored for %s: %s", call_state.get("phone"), extracted.get("summary"))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not store post-call analysis for %s: %s", call_state.get("phone"), exc)
 
 
 async def send_audio_to_twilio(ws: WebSocket, stream_sid: str, audio_bytes: bytes, mark_name: str) -> None:
@@ -2521,7 +2688,10 @@ async def speak_turn(ws: WebSocket, call_state: dict, text: str, should_transfer
     caller_phone = call_state["phone"]
     mark_name = f"reply-{uuid.uuid4().hex[:8]}"
     try:
-        audio_bytes = await deepgram_tts(text)
+        if text == INBOUND_GREETING_TEXT and _presynthesized_greeting_audio:
+            audio_bytes = _presynthesized_greeting_audio
+        else:
+            audio_bytes = await deepgram_tts(text)
         call_state["awaited_mark"] = mark_name
         call_state["mark_event"].clear()
         await send_audio_to_twilio(ws, stream_sid, audio_bytes, mark_name=mark_name)
@@ -2641,7 +2811,7 @@ def webhook_voice(From: str = Form(...), CallSid: str = Form(...), _signature_ok
     connect = response.connect()
     stream = connect.stream(url=f"{ws_base}/media-stream")
     stream.parameter(name="phone", value=From)
-    stream.parameter(name="greeting", value=f"Hi there, thanks so much for calling {RESTAURANT_NAME}! What can I help you with today?")
+    stream.parameter(name="greeting", value=INBOUND_GREETING_TEXT)
     return Response(content=str(response), media_type="application/xml")
 
 
@@ -2706,7 +2876,7 @@ async def media_stream(websocket: WebSocket) -> None:
                 call_state["phone"] = params.get("phone", "unknown")
                 call_state["outbound"] = params.get("outbound") == "true"
                 call_state["purpose"] = params.get("purpose")
-                greeting = params.get("greeting") or f"Hi, thanks for calling {RESTAURANT_NAME}."
+                greeting = params.get("greeting") or INBOUND_GREETING_TEXT
 
                 pump_task = asyncio.create_task(pump_deepgram_transcripts(deepgram_ws, websocket, call_state))
 
@@ -2742,6 +2912,7 @@ async def media_stream(websocket: WebSocket) -> None:
             pump_task.cancel()
         if deepgram_ws:
             await deepgram_ws.close()
+        _fire_and_forget(analyze_call_transcript(call_state))
 
 
 class OutboundCallRequest(BaseModel):
