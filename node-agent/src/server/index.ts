@@ -1,0 +1,131 @@
+import 'dotenv/config';
+import express from 'express';
+import http from 'http';
+import WebSocket, { WebSocketServer } from 'ws';
+import { ENV } from '../config/env';
+import { initDb } from '../db/schema';
+import { initSchedulerTable, startScheduler } from '../scheduler';
+import { registerAllJobHandlers } from '../scheduler/handlers';
+import { presynthesizeGreeting } from '../voice/tts/deepgramTts';
+import { dashboardAuthMiddleware } from './authMiddleware';
+import { verifyTwilioMiddleware } from './verifyTwilio';
+import { webhookVoice, webhookVoiceOutbound } from '../telephony/voiceWebhooks';
+import { CallSession } from '../voice/orchestrator/callSession';
+import { voiceDiagnostics } from '../voice/diagnostics';
+import { twilioVoiceClient } from '../telephony/twilio';
+import { registerApiRoutes } from './apiRoutes';
+
+async function main(): Promise<void> {
+  await initDb();
+  await initSchedulerTable();
+  registerAllJobHandlers();
+  startScheduler();
+  await presynthesizeGreeting();
+
+  const app = express();
+  app.use(dashboardAuthMiddleware);
+  app.use(express.urlencoded({ extended: false }));
+  app.use(express.json());
+
+  app.get('/health', (_req, res) => {
+    res.json({ ok: true, restaurant: ENV.restaurantName });
+  });
+
+  app.post('/webhook/voice', verifyTwilioMiddleware, webhookVoice);
+  app.post('/webhook/voice-outbound', verifyTwilioMiddleware, webhookVoiceOutbound);
+
+  app.get('/api/diagnostics/voice', async (_req, res) => {
+    res.json(await voiceDiagnostics());
+  });
+
+  app.post('/api/voice/call-out', async (req, res) => {
+    const diagnostics = await voiceDiagnostics();
+    if (!diagnostics.ready_for_calls) {
+      res.status(400).json({
+        detail: `Voice agent isn't fully configured yet. Missing: ${diagnostics.missing.join(', ') || 'Twilio/Deepgram credentials'}.`,
+      });
+      return;
+    }
+    const client = twilioVoiceClient();
+    if (!client) {
+      res.status(400).json({ detail: 'Twilio client not configured.' });
+      return;
+    }
+    const { phone, guest_name: guestName = 'Guest', purpose = 'a reservation follow-up' } = req.body;
+    const call = await client.calls.create({
+      to: phone,
+      from: ENV.twilioVoiceNumber,
+      url:
+        `${ENV.publicBaseUrl}/webhook/voice-outbound` +
+        `?guest_name=${encodeURIComponent(guestName)}&purpose=${encodeURIComponent(purpose)}`,
+    });
+    res.json({ status: 'calling', call_sid: call.sid, phone });
+  });
+
+  registerApiRoutes(app);
+
+  const server = http.createServer(app);
+  const wss = new WebSocketServer({ server, path: '/media-stream' });
+
+  wss.on('connection', (ws: WebSocket) => {
+    let session: CallSession | null = null;
+
+    ws.on('message', (raw: WebSocket.RawData) => {
+      let message: Record<string, unknown>;
+      try {
+        message = JSON.parse(raw.toString());
+      } catch {
+        return;
+      }
+
+      switch (message.event) {
+        case 'start': {
+          const start = message.start as Record<string, any>;
+          const callSid = start.callSid as string;
+          const streamSid = start.streamSid as string;
+          const params = (start.customParameters ?? {}) as Record<string, string>;
+          const phone = params.phone ?? 'unknown';
+          const outbound = params.outbound === 'true';
+          const purpose = params.purpose ?? null;
+          const greeting = params.greeting ?? '';
+
+          session = new CallSession(callSid, ws, phone, outbound, purpose, greeting);
+          session.setStreamSid(streamSid);
+          setTimeout(() => session?.sendGreeting(), 50);
+          break;
+        }
+        case 'media': {
+          const media = message.media as Record<string, string>;
+          session?.handleAudioChunk(media.payload);
+          break;
+        }
+        case 'mark': {
+          const mark = message.mark as Record<string, string>;
+          session?.handleMarkEvent(mark.name);
+          break;
+        }
+        case 'stop': {
+          session?.end();
+          session = null;
+          break;
+        }
+      }
+    });
+
+    ws.on('close', () => session?.end());
+    ws.on('error', (err: Error) => {
+      console.error('[WS] WebSocket error:', err.message);
+      session?.end();
+    });
+  });
+
+  server.listen(ENV.port, () => {
+    console.log(`[Server] JING Node agent listening on port ${ENV.port}`);
+    console.log(`[Server] Public URL: ${ENV.publicBaseUrl}`);
+  });
+}
+
+main().catch((err) => {
+  console.error('Fatal startup error:', err);
+  process.exit(1);
+});
