@@ -18,7 +18,12 @@ type CallState = 'greeting' | 'listening' | 'processing' | 'speaking' | 'ended';
 // heard anything they say "hello?" again, repeatedly cancelling every attempt. This
 // exact bug (and fix) was verified against real production calls earlier today.
 const BARGE_IN_GRACE_MS = 1200;
-const BARGE_IN_ENERGY = 30;
+// Same real-call noise-floor data as vad.ts's ENERGY_THRESHOLD (43-150 baseline on a
+// real India-route call) - 30 was silently below the noise floor, meaning background
+// noise alone could falsely trigger barge-in. Set above the listening threshold since
+// interrupting our own speech should require clearly more deliberate/louder speech
+// than just being heard while quiet.
+const BARGE_IN_ENERGY = 260;
 
 const FILLER_TRANSCRIPTS = new Set([
   'hello', 'hi', 'hey', 'hello hello', 'anybody there', 'are you there', 'can you hear me', 'who is this',

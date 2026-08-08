@@ -5,7 +5,15 @@ import { EventEmitter } from 'events';
 // energy proxy). This replaces the free "SpeechStarted"/interim-transcript signal
 // Deepgram's streaming STT gave us; Groq Whisper is REST batch, so we have to know
 // ourselves when the caller started and stopped talking before we can even send audio.
-const ENERGY_THRESHOLD = 20; // ignores background/mobile network noise
+// Real production data from a live call (India mobile carrier route) showed a baseline
+// noise floor of 43-150 (avg ~75-87) even during silence - the original value of 20,
+// copied unchanged from a reference project tuned for a different call path, was below
+// the noise floor entirely, so isSpeaking never reset and speech_end never fired no
+// matter what the caller said. Set well above the observed max with a safety margin;
+// this is a first pass based on one call's data, not a universal calibration - a static
+// threshold is inherently fragile across different carrier routes and may need further
+// tuning against more real calls.
+const ENERGY_THRESHOLD = 220;
 const MIN_AUDIO_BYTES = 6400; // ~800ms minimum speech before treating it as a real utterance
 const SILENCE_MS = 600; // how long a caller must go quiet before we treat the utterance as finished
 
