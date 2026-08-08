@@ -1,28 +1,27 @@
 :root {
-  color-scheme: dark;
-  /* Deliberately narrow palette: one bronze/gold accent family plus two muted,
-     strictly-semantic colors (sage for positive, brick for negative). The previous
-     pass used six fully-saturated hues for decoration (icon backgrounds, glows,
-     gradients) which read as a busy admin-panel template rather than a restrained
-     hospitality brand - quiet luxury comes from repetition and restraint, not variety. */
-  --bg: #0c0a08;
-  --bg-soft: rgba(255, 255, 255, 0.03);
-  --card: rgba(22, 18, 15, 0.82);
-  --card-strong: rgba(26, 21, 17, 0.92);
-  --border: rgba(255, 255, 255, 0.07);
-  --border-warm: rgba(201, 160, 90, 0.16);
-  --text: #ece3d6;
-  --muted: #9c8f7e;
-  --accent: #b8874a;
-  --accent-soft: #d4a86a;
-  --accent-2: #6f8f7a;
+  color-scheme: light;
+  /* Light, editorial hospitality look (Park Hyatt reference) rather than a dark admin
+     panel: cream/white surfaces, near-black text, a single muted brass accent used
+     sparingly, thin hairline borders instead of glowing shadows. Quiet confidence
+     through whitespace and typography, not decorative color or heavy chrome. */
+  --bg: #f6f2ea;
+  --bg-soft: rgba(30, 24, 16, 0.03);
+  --card: #fffdfa;
+  --card-strong: #ffffff;
+  --border: rgba(30, 24, 16, 0.09);
+  --border-warm: rgba(150, 116, 61, 0.28);
+  --text: #241f19;
+  --muted: #7c7263;
+  --accent: #96793f;
+  --accent-soft: #b3945a;
+  --accent-2: #5c7a68;
   --accent-3: #7a5245;
-  --accent-4: #c9a05a;
-  --accent-4-bright: #e2c383;
+  --accent-4: #96793f;
+  --accent-4-bright: #7d6434;
   --danger: #a3564a;
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-  --shadow-soft: 0 8px 28px rgba(0, 0, 0, 0.3);
-  --glow: 0 0 32px rgba(201, 160, 90, 0.1);
+  --shadow: 0 16px 40px rgba(30, 24, 16, 0.08);
+  --shadow-soft: 0 6px 18px rgba(30, 24, 16, 0.06);
+  --glow: 0 0 0 rgba(0, 0, 0, 0);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -38,35 +37,25 @@ body {
 body {
   margin: 0;
   font-family: "Manrope", system-ui, sans-serif;
-  background:
-    radial-gradient(ellipse 1100px 700px at 50% -15%, rgba(201, 160, 90, 0.08), transparent 60%),
-    linear-gradient(175deg, #0c0a08 0%, #17120e 55%, #100d0a 100%);
+  background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Barely-there film-grain texture for tactile depth on the dark surface - a fine
-   dusting of noise, not a decoration in its own right. */
+/* Barely-there film-grain texture for paper-like tactility - a fine dusting of
+   noise, not a decoration in its own right. */
 .bg-grain {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.035;
-  mix-blend-mode: overlay;
+  opacity: 0.025;
+  mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 .bg-grid {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.25;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 92%);
+  display: none;
 }
 
 .app-shell {
@@ -83,8 +72,8 @@ body {
   overflow-y: auto;
   padding: 24px 20px;
   border-right: 1px solid var(--border);
-  background: rgba(13, 9, 8, 0.8);
-  backdrop-filter: blur(32px);
+  background: rgba(255, 253, 250, 0.75);
+  backdrop-filter: blur(20px);
 }
 
 .brand {
@@ -93,7 +82,7 @@ body {
   gap: 12px;
   padding: 14px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(30, 24, 16, 0.04);
   border: 1px solid var(--border-warm);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
@@ -109,7 +98,7 @@ body {
   font-family: "Fraunces", Georgia, serif;
   font-weight: 700;
   font-size: 1.3rem;
-  box-shadow: 0 8px 24px rgba(184, 135, 74, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(184, 135, 74, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5);
 }
 
 .nav-list {
@@ -136,7 +125,7 @@ body {
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(30, 24, 16, 0.05);
   color: var(--text);
   transform: translateX(3px);
 }
@@ -144,7 +133,7 @@ body {
 .nav-item.active {
   background: linear-gradient(135deg, rgba(184, 135, 74, 0.22), rgba(201, 160, 90, 0.14));
   color: var(--text);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), var(--glow);
+  box-shadow: inset 0 0 0 1px rgba(30, 24, 16, 0.1), var(--glow);
   transform: translateX(3px);
 }
 
@@ -154,13 +143,13 @@ body {
   display: grid;
   place-items: center;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(30, 24, 16, 0.05);
   font-size: 0.85rem;
   transition: background 0.2s ease;
 }
 
 .nav-item.active .nav-icon {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(30, 24, 16, 0.12);
 }
 
 .sidebar-card {
@@ -205,8 +194,8 @@ body {
   gap: 10px;
   padding: 12px 18px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(30, 24, 16, 0.05);
+  border: 1px solid rgba(30, 24, 16, 0.08);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -235,14 +224,14 @@ body {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(30, 24, 16, 0.06);
   color: var(--text);
   cursor: pointer;
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
 .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(30, 24, 16, 0.1);
   transform: translateY(-2px);
 }
 
@@ -298,10 +287,9 @@ body {
 .kpi-card,
 .insight-card {
   border: 1px solid var(--border);
-  border-radius: 26px;
-  background: linear-gradient(180deg, rgba(33, 22, 18, 0.95), rgba(17, 11, 9, 0.98));
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(28px);
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
   transition: border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
 }
 
@@ -311,21 +299,19 @@ body {
   justify-content: space-between;
   align-items: end;
   gap: 24px;
-  padding: 36px 40px;
+  padding: 40px 44px;
   margin-bottom: 24px;
   overflow: hidden;
-  border: 1px solid var(--border-warm);
-  background:
-    linear-gradient(135deg, rgba(34, 22, 18, 0.97), rgba(16, 10, 8, 0.99)),
-    radial-gradient(ellipse 480px 320px at 100% 0%, rgba(184, 135, 74, 0.22), transparent 60%),
-    radial-gradient(ellipse 420px 320px at 0% 100%, rgba(232, 180, 80, 0.14), transparent 60%);
+  border: 1px solid var(--border);
+  background: var(--card-strong);
+  box-shadow: var(--shadow);
 }
 
 .hero-card::before {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(120deg, transparent 40%, rgba(232, 180, 80, 0.05) 50%, transparent 60%);
+  background: linear-gradient(100deg, transparent 55%, rgba(150, 116, 61, 0.05) 70%, transparent 85%);
   pointer-events: none;
 }
 
@@ -356,7 +342,7 @@ body {
 .hero-note {
   padding: 10px 14px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(30, 24, 16, 0.05);
   color: var(--muted);
   font-size: 0.92rem;
 }
@@ -368,7 +354,7 @@ body {
   gap: 8px;
   padding: 10px 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(30, 24, 16, 0.05);
   color: var(--text);
   font-size: 0.9rem;
   font-weight: 600;
@@ -540,7 +526,7 @@ body {
 }
 
 .badge.muted {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(30, 24, 16, 0.06);
   color: var(--muted);
 }
 
@@ -550,7 +536,7 @@ body {
 }
 
 .badge.tier-silver {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(30, 24, 16, 0.1);
   color: #d3cabc;
 }
 
@@ -583,7 +569,7 @@ body {
   border-radius: 999px;
   font-size: 0.82rem;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(30, 24, 16, 0.06);
 }
 
 .trend.up {
@@ -634,8 +620,8 @@ body {
 }
 
 .ghost-btn {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(30, 24, 16, 0.08);
+  background: rgba(30, 24, 16, 0.05);
   color: var(--text);
   padding: 8px 14px;
   border-radius: 999px;
@@ -645,7 +631,7 @@ body {
 }
 
 .ghost-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(30, 24, 16, 0.1);
   transform: translateY(-1px);
 }
 
@@ -656,10 +642,10 @@ body {
 }
 
 .shortcut-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(30, 24, 16, 0.08);
   border-radius: 18px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(30, 24, 16, 0.03);
   cursor: pointer;
   text-align: left;
   color: var(--text);
@@ -667,7 +653,7 @@ body {
 }
 
 .shortcut-card:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(30, 24, 16, 0.07);
   transform: translateY(-2px);
   border-color: rgba(201, 160, 90, 0.28);
 }
@@ -703,8 +689,8 @@ body {
 .stat-block {
   padding: 18px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(30, 24, 16, 0.04);
+  border: 1px solid rgba(30, 24, 16, 0.06);
   text-align: center;
 }
 
@@ -754,7 +740,7 @@ body {
 .info-list code {
   padding: 2px 6px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(30, 24, 16, 0.08);
   color: var(--accent-4);
   font-size: 0.88rem;
 }
@@ -767,8 +753,8 @@ body {
   margin-top: 24px;
   padding: 18px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(30, 24, 16, 0.03);
+  border: 1px solid rgba(30, 24, 16, 0.06);
 }
 
 .settings-strip label {
@@ -781,7 +767,7 @@ body {
 }
 
 .settings-strip input {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(30, 24, 16, 0.05);
 }
 
 .table-assign-label {
@@ -811,8 +797,8 @@ body {
 }
 
 .chip {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(30, 24, 16, 0.1);
+  background: rgba(30, 24, 16, 0.05);
   color: var(--text);
   padding: 9px 16px;
   border-radius: 999px;
@@ -835,8 +821,8 @@ body {
   max-height: 540px;
   padding: 18px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(30, 24, 16, 0.03);
+  border: 1px solid rgba(30, 24, 16, 0.05);
   position: relative;
   overflow-y: auto;
 }
@@ -859,7 +845,7 @@ body {
 
 .message-meta {
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(36, 31, 25, 0.4);
   margin-top: 6px;
   text-align: right;
 }
@@ -875,7 +861,7 @@ body {
   gap: 6px;
   padding: 14px 16px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(30, 24, 16, 0.06);
   color: var(--muted);
   font-size: 0.9rem;
 }
@@ -908,8 +894,8 @@ body {
 .sandbox-card {
   padding: 16px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(47, 158, 110, 0.14), rgba(201, 160, 90, 0.12));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(92, 122, 104, 0.08);
+  border: 1px solid rgba(92, 122, 104, 0.2);
   margin-bottom: 12px;
 }
 
@@ -939,7 +925,7 @@ body {
 
 .sandbox-link:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(47, 158, 110, 0.28);
+  box-shadow: 0 8px 20px rgba(92, 122, 104, 0.28);
 }
 
 .message {
@@ -952,19 +938,24 @@ body {
 
 .message.system {
   align-self: center;
-  color: #f6cf75;
-  background: rgba(201, 160, 90, 0.14);
+  color: #6b5527;
+  background: rgba(150, 121, 63, 0.12);
 }
 
 .message.user {
   align-self: end;
-  background: linear-gradient(135deg, rgba(184, 135, 74, 0.95), rgba(201, 160, 90, 0.85));
-  color: white;
+  background: linear-gradient(135deg, rgba(150, 121, 63, 0.95), rgba(179, 148, 90, 0.9));
+  color: #fffaf2;
+}
+
+.message.user .message-meta {
+  color: rgba(255, 250, 242, 0.55);
 }
 
 .message.assistant {
   align-self: start;
-  background: rgba(255, 255, 255, 0.07);
+  background: #fffdfa;
+  border: 1px solid var(--border);
 }
 
 .maya-composer,
@@ -988,10 +979,10 @@ body {
 input,
 select {
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(30, 24, 16, 0.09);
   border-radius: 14px;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(30, 24, 16, 0.05);
   color: var(--text);
   font: inherit;
   outline: none;
@@ -1039,14 +1030,14 @@ select:focus {
 .secondary-btn {
   padding: 10px 16px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(30, 24, 16, 0.06);
   color: var(--text);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(30, 24, 16, 0.08);
   font-weight: 600;
 }
 
 .secondary-btn:hover {
-  background: rgba(232, 180, 80, 0.1);
+  background: rgba(201, 160, 90, 0.1);
   border-color: var(--border-warm);
   transform: translateY(-2px);
 }
@@ -1068,8 +1059,8 @@ select:focus {
 .chart-card {
   padding: 18px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(30, 24, 16, 0.03);
+  border: 1px solid rgba(30, 24, 16, 0.04);
 }
 
 .chart-bars {
@@ -1116,8 +1107,8 @@ select:focus {
 .mini-chart-card {
   padding: 18px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(30, 24, 16, 0.03);
+  border: 1px solid rgba(30, 24, 16, 0.05);
   display: grid;
   gap: 14px;
   align-content: start;
@@ -1173,7 +1164,7 @@ select:focus {
 .gauge-track {
   height: 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(30, 24, 16, 0.08);
   overflow: hidden;
 }
 
@@ -1210,8 +1201,8 @@ select:focus {
   gap: 12px;
   padding: 16px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(30, 24, 16, 0.03);
+  border: 1px solid rgba(30, 24, 16, 0.05);
 }
 
 .insight-row .insight-icon {
@@ -1247,14 +1238,14 @@ select:focus {
 .empty-state {
   padding: 14px 16px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(30, 24, 16, 0.04);
+  border: 1px solid rgba(30, 24, 16, 0.06);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .record-item:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(30, 24, 16, 0.07);
+  border-color: rgba(30, 24, 16, 0.1);
 }
 
 .record-main {
@@ -1278,7 +1269,7 @@ select:focus {
 .diagnostics-box {
   padding: 14px 16px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(30, 24, 16, 0.04);
   color: var(--muted);
   margin-bottom: 12px;
   line-height: 1.6;
@@ -1300,8 +1291,8 @@ select:focus {
 .sub-panel {
   padding: 14px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(30, 24, 16, 0.03);
+  border: 1px solid rgba(30, 24, 16, 0.04);
 }
 
 .records-intro {
