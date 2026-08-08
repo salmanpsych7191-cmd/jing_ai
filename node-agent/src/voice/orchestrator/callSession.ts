@@ -18,12 +18,6 @@ type CallState = 'greeting' | 'listening' | 'processing' | 'speaking' | 'ended';
 // heard anything they say "hello?" again, repeatedly cancelling every attempt. This
 // exact bug (and fix) was verified against real production calls earlier today.
 const BARGE_IN_GRACE_MS = 1200;
-// Same real-call noise-floor data as vad.ts's ENERGY_THRESHOLD (43-150 baseline on a
-// real India-route call) - 30 was silently below the noise floor, meaning background
-// noise alone could falsely trigger barge-in. Set above the listening threshold since
-// interrupting our own speech should require clearly more deliberate/louder speech
-// than just being heard while quiet.
-const BARGE_IN_ENERGY = 260;
 
 const FILLER_TRANSCRIPTS = new Set([
   'hello', 'hi', 'hey', 'hello hello', 'anybody there', 'are you there', 'can you hear me', 'who is this',
@@ -60,7 +54,19 @@ export class CallSession {
     private readonly purpose: string | null,
     private readonly greetingText: string,
   ) {
-    this.vad.on('speech_start', () => console.log(`[${this.callSid}] VAD: speech_start (state=${this.state})`));
+    this.vad.on('speech_start', () => {
+      console.log(`[${this.callSid}] VAD: speech_start (state=${this.state})`);
+      // Barge-in now runs through the same adaptive VAD signal as normal listening,
+      // instead of a second, separately-tuned static energy threshold - two static
+      // thresholds that could independently drift out of calibration was strictly
+      // worse than one self-calibrating signal driving both.
+      if (this.state === 'speaking' && Date.now() - this.speakStartedAt >= BARGE_IN_GRACE_MS) {
+        this.wasInterruptedThisTurn = true;
+        this.clearTwilioPlayback();
+        this.state = 'listening';
+        this.startNoiseLoop();
+      }
+    });
     this.vad.on('speech_end', (buf: Buffer) => {
       console.log(`[${this.callSid}] VAD: speech_end, ${buf.length} bytes (state=${this.state})`);
       this.onSpeechEnd(buf).catch((err) => console.error(`[${this.callSid}] Speech processing error:`, err));
@@ -99,20 +105,7 @@ export class CallSession {
       this.energyCount = 0;
     }
 
-    if (this.state === 'speaking') {
-      const energy = liveEnergy;
-      const elapsedMs = Date.now() - this.speakStartedAt;
-      if (energy > BARGE_IN_ENERGY && elapsedMs >= BARGE_IN_GRACE_MS) {
-        this.wasInterruptedThisTurn = true;
-        this.clearTwilioPlayback();
-        this.state = 'listening';
-        this.startNoiseLoop();
-      }
-      this.vad.processChunk(buffer);
-      return;
-    }
-
-    if (this.state === 'listening') {
+    if (this.state === 'speaking' || this.state === 'listening') {
       this.vad.processChunk(buffer);
     }
   }
@@ -176,7 +169,7 @@ export class CallSession {
     this.history.push({ role: 'user', content: transcript });
     try {
       const fullReply = await this.speakStreamed(
-        (onSentence) => streamVoiceAgentTurn(this.phone, transcript, this.history.slice(0, -1), this.outbound ? this.purpose : null, onSentence),
+        (onSentence) => streamVoiceAgentTurn(this.phone, transcript, this.history.slice(0, -1), this.outbound ? this.purpose : null, onSentence, this.outbound),
       );
       if (fullReply) this.history.push({ role: 'assistant', content: fullReply });
     } catch (err) {

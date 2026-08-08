@@ -5,15 +5,19 @@ import { EventEmitter } from 'events';
 // energy proxy). This replaces the free "SpeechStarted"/interim-transcript signal
 // Deepgram's streaming STT gave us; Groq Whisper is REST batch, so we have to know
 // ourselves when the caller started and stopped talking before we can even send audio.
-// Real production data from a live call (India mobile carrier route) showed a baseline
-// noise floor of 43-150 (avg ~75-87) even during silence - the original value of 20,
-// copied unchanged from a reference project tuned for a different call path, was below
-// the noise floor entirely, so isSpeaking never reset and speech_end never fired no
-// matter what the caller said. Set well above the observed max with a safety margin;
-// this is a first pass based on one call's data, not a universal calibration - a static
-// threshold is inherently fragile across different carrier routes and may need further
-// tuning against more real calls.
-const ENERGY_THRESHOLD = 220;
+//
+// A single hardcoded energy threshold was tried and proved unworkable: real call data
+// showed one call's baseline noise floor peaking at 150 (needing a threshold above
+// that), while a DIFFERENT call's genuine speech never exceeded ~157 (so that same
+// raised threshold missed it entirely). Baseline noise varies call-to-call (carrier
+// route, phone hardware, environment) enough that no single global number works
+// reliably. Instead, this tracks a per-call adaptive noise floor and classifies speech
+// as a RELATIVE jump above it - self-calibrating to whatever this specific call's
+// conditions actually are instead of guessing a universal constant.
+const SPEECH_MARGIN = 45; // how far above the tracked floor counts as speech
+const FLOOR_SEED = 30; // initial guess before any real data for this call exists
+const FLOOR_DECAY_DOWN = 0.9; // fast: quickly trust quieter audio as the new floor
+const FLOOR_DECAY_UP = 0.995; // slow: a burst of speech shouldn't redefine "quiet"
 const MIN_AUDIO_BYTES = 6400; // ~800ms minimum speech before treating it as a real utterance
 const SILENCE_MS = 600; // how long a caller must go quiet before we treat the utterance as finished
 
@@ -21,10 +25,21 @@ export class VAD extends EventEmitter {
   private audioBuffer: Buffer[] = [];
   private silenceTimer: NodeJS.Timeout | null = null;
   private isSpeaking = false;
+  private noiseFloor = FLOOR_SEED;
 
   processChunk(buffer: Buffer): void {
     const energy = calcEnergy(buffer);
-    if (energy > ENERGY_THRESHOLD) {
+
+    // Floor updates on every chunk (not just quiet ones) so it can never get
+    // permanently stuck - it just moves toward quiet audio fast and toward loud
+    // audio slowly, which lets genuine relative speech bursts still stand out.
+    this.noiseFloor = energy < this.noiseFloor
+      ? this.noiseFloor * FLOOR_DECAY_DOWN + energy * (1 - FLOOR_DECAY_DOWN)
+      : this.noiseFloor * FLOOR_DECAY_UP + energy * (1 - FLOOR_DECAY_UP);
+
+    const threshold = this.noiseFloor + SPEECH_MARGIN;
+
+    if (energy > threshold) {
       if (!this.isSpeaking) {
         this.isSpeaking = true;
         this.emit('speech_start');
@@ -58,6 +73,7 @@ export class VAD extends EventEmitter {
     }
     this.audioBuffer = [];
     this.isSpeaking = false;
+    this.noiseFloor = FLOOR_SEED;
   }
 }
 

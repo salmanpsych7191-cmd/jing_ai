@@ -19,7 +19,7 @@ export const voiceClient = new OpenAI({
 
 export type VoiceMessage = { role: 'user' | 'assistant' | 'system' | 'tool'; content: string; [key: string]: any };
 
-function buildVoiceSystemPrompt(phone: string, outboundPurpose: string | null): string {
+function buildVoiceSystemPrompt(phone: string, outboundPurpose: string | null, allowTransfer: boolean): string {
   const today = new Date();
   const outboundBlock = outboundPurpose
     ? `
@@ -52,10 +52,13 @@ Guidelines:
 - Use tools for anything involving real bookings, availability, loyalty points, or the review link.
 - Before calling create_reservation, confirm guest name, date, time, and party size out loud, and get a clear yes.
 - If you already confirmed this exact booking earlier in the call, do not call create_reservation again.
-- Call transfer_to_staff if the caller asks for a person, has a request you can't handle, or seems frustrated.
+${allowTransfer
+    ? `- Call transfer_to_staff if the caller asks for a person, has a request you can't handle, or seems frustrated.
 - For group bookings, private events, or large parties: call transfer_to_staff (this also automatically texts staff the caller's number as a backup) and tell the caller you're connecting them now.
+- Never claim you did something you didn't. Only say you're transferring the call if you actually called transfer_to_staff this turn.`
+    : `- Live transfer isn't available on this line. If the caller asks for a person, has a request you can't handle, seems frustrated, or wants a group booking/private event/large party, apologize that no one's available to take the call directly right now, and suggest they leave their number and request so staff can call them back, or message the restaurant on WhatsApp.
+- Never claim you're transferring the call or connecting them to someone live — that's not possible here.`}
 - Never read a URL aloud. If the caller wants the menu, a review link, or a social media page, use the send_link tool to text it to them and say something like "I've just sent that to your WhatsApp."
-- Never claim you did something you didn't. Only say you're transferring the call if you actually called transfer_to_staff this turn; only say you sent a link if you actually called send_link this turn.
 `.trim();
 }
 
@@ -126,10 +129,14 @@ export async function streamVoiceAgentTurn(
   history: VoiceMessage[],
   outboundPurpose: string | null,
   onSentence: (sentence: string) => void,
+  allowTransfer: boolean = true,
 ): Promise<VoiceTurnResult> {
-  const systemPrompt = buildVoiceSystemPrompt(phone, outboundPurpose);
+  const systemPrompt = buildVoiceSystemPrompt(phone, outboundPurpose, allowTransfer);
   const messages: any[] = [{ role: 'system', content: systemPrompt }, ...history, { role: 'user', content: text }];
   let shouldTransfer = false;
+  // Removed for inbound calls per explicit request - the tool schema itself is
+  // withheld so the model can't call it at all, not just discouraged via the prompt.
+  const tools = allowTransfer ? VOICE_TOOLS : VOICE_TOOLS.filter((t) => t.function.name !== 'transfer_to_staff');
 
   for (let round = 0; round < 4; round++) {
     let contentBuffer = '';
@@ -140,7 +147,7 @@ export async function streamVoiceAgentTurn(
       const stream = await voiceClient.chat.completions.create({
         model: ENV.voiceLlmModel,
         messages,
-        tools: VOICE_TOOLS as any,
+        tools: tools as any,
         tool_choice: 'auto',
         temperature: 0.4,
         max_tokens: 150,
@@ -155,7 +162,7 @@ export async function streamVoiceAgentTurn(
         const stream = await voiceClient.chat.completions.create({
           model: ENV.voiceLlmModel,
           messages,
-          tools: VOICE_TOOLS as any,
+          tools: tools as any,
           tool_choice: 'auto',
           temperature: 0.4,
           max_tokens: 150,
