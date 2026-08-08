@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import array
 import asyncio
+import audioop
 import base64
 import json
 import os
 import queue
+import random
 import re
 import secrets
 import time
@@ -2602,6 +2605,52 @@ def normalize_for_tts(text: str) -> str:
     return text
 
 
+VOICE_AMBIENT_NOISE_ENABLED = os.getenv("VOICE_AMBIENT_NOISE", "true").lower() == "true"
+
+
+def _generate_ambient_noise_mulaw(duration_seconds: float = 12.0, sample_rate: int = 8000) -> bytes:
+    """Synthesize a soft, low-level room-tone bed to mix under TTS output so the call
+    doesn't sound like it's coming from total silence. We don't have a licensed
+    restaurant ambience recording, so this is gently smoothed white noise (a simple
+    moving-average low-pass to soften it from harsh static into a warmer hum) rather
+    than real kitchen/dining-room audio, kept at a very low fixed gain."""
+    num_samples = int(duration_seconds * sample_rate)
+    rng = random.Random(1234)  # fixed seed - deterministic, same ambience bed every run
+    raw = [rng.randint(-2000, 2000) for _ in range(num_samples)]
+    window = 6
+    smoothed = []
+    acc = 0
+    for i, v in enumerate(raw):
+        acc += v
+        if i >= window:
+            acc -= raw[i - window]
+        smoothed.append(int(acc / min(i + 1, window)))
+    pcm_bytes = array.array("h", smoothed).tobytes()
+    quiet_pcm = audioop.mul(pcm_bytes, 2, 0.05)  # keep it very low-gain, background only
+    return audioop.lin2ulaw(quiet_pcm, 2)
+
+
+_AMBIENT_NOISE_MULAW = _generate_ambient_noise_mulaw() if VOICE_AMBIENT_NOISE_ENABLED else b""
+
+
+def _mix_ambient_noise(tts_mulaw: bytes) -> bytes:
+    """Mix a low-gain ambient bed under TTS audio. Loops the ambient buffer to match
+    the TTS clip's length and picks a random start offset so consecutive replies don't
+    all open on the exact same point in the loop."""
+    if not tts_mulaw or not _AMBIENT_NOISE_MULAW:
+        return tts_mulaw
+    ambient = _AMBIENT_NOISE_MULAW
+    needed = len(tts_mulaw)
+    if needed > len(ambient):
+        ambient = ambient * (needed // len(ambient) + 1)
+    offset = random.randint(0, len(ambient) - needed) if len(ambient) > needed else 0
+    ambient_slice = ambient[offset:offset + needed]
+    tts_pcm = audioop.ulaw2lin(tts_mulaw, 2)
+    ambient_pcm = audioop.ulaw2lin(ambient_slice, 2)
+    mixed_pcm = audioop.add(tts_pcm, ambient_pcm, 2)
+    return audioop.lin2ulaw(mixed_pcm, 2)
+
+
 async def deepgram_tts(text: str) -> bytes:
     async with httpx.AsyncClient(timeout=20.0) as http_client:
         response = await http_client.post(
@@ -2610,7 +2659,8 @@ async def deepgram_tts(text: str) -> bytes:
             json={"text": normalize_for_tts(text)},
         )
         response.raise_for_status()
-        return response.content
+        audio = response.content
+        return _mix_ambient_noise(audio) if VOICE_AMBIENT_NOISE_ENABLED else audio
 
 
 async def presynthesize_greeting() -> None:
