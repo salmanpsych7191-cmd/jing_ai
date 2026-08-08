@@ -55,7 +55,9 @@ export class CallSession {
     private readonly purpose: string | null,
     private readonly greetingText: string,
   ) {
+    this.vad.on('speech_start', () => console.log(`[${this.callSid}] VAD: speech_start (state=${this.state})`));
     this.vad.on('speech_end', (buf: Buffer) => {
+      console.log(`[${this.callSid}] VAD: speech_end, ${buf.length} bytes (state=${this.state})`);
       this.onSpeechEnd(buf).catch((err) => console.error(`[${this.callSid}] Speech processing error:`, err));
     });
   }
@@ -64,9 +66,15 @@ export class CallSession {
     this.streamSid = sid;
   }
 
+  private mediaChunkCount = 0;
+
   handleAudioChunk(base64Payload: string): void {
     if (this.state === 'ended') return;
     const buffer = Buffer.from(base64Payload, 'base64');
+    this.mediaChunkCount++;
+    if (this.mediaChunkCount % 250 === 0) {
+      console.log(`[${this.callSid}] Received ${this.mediaChunkCount} inbound audio chunks so far (state=${this.state})`);
+    }
 
     if (this.state === 'speaking') {
       const energy = calcEnergy(buffer);
@@ -236,20 +244,28 @@ export class CallSession {
     this.awaitedMark = markName;
     this.sendAudioToTwilio(audio, markName);
 
-    await Promise.race([
-      new Promise<void>((resolve) => this.markResolvers.push(resolve)),
-      new Promise<void>((resolve) => setTimeout(resolve, 15000)),
+    const markWaitStart = Date.now();
+    const gotMark = await Promise.race([
+      new Promise<boolean>((resolve) => this.markResolvers.push(() => resolve(true))),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 15000)),
     ]);
+    console.log(`[${this.callSid}] mark "${markName}" ${gotMark ? 'acked' : 'TIMED OUT'} after ${Date.now() - markWaitStart}ms`);
   }
 
   private sendAudioToTwilio(audio: Buffer, markName: string): void {
-    if (!this.streamSid || this.ws.readyState !== WebSocket.OPEN) return;
+    if (!this.streamSid || this.ws.readyState !== WebSocket.OPEN) {
+      console.warn(`[${this.callSid}] sendAudioToTwilio SKIPPED: streamSid=${this.streamSid} readyState=${this.ws.readyState}`);
+      return;
+    }
     const chunkSize = 640; // ~80ms of mulaw @ 8kHz per frame
+    let chunks = 0;
     for (let i = 0; i < audio.length; i += chunkSize) {
       const chunk = audio.subarray(i, i + chunkSize);
       this.ws.send(JSON.stringify({ event: 'media', streamSid: this.streamSid, media: { payload: chunk.toString('base64') } }));
+      chunks++;
     }
     this.ws.send(JSON.stringify({ event: 'mark', streamSid: this.streamSid, mark: { name: markName } }));
+    console.log(`[${this.callSid}] Sent ${chunks} audio chunks (${audio.length} bytes) + mark "${markName}"`);
   }
 
   // Called from the WS message loop when Twilio echoes back a "mark" event.
@@ -283,6 +299,7 @@ export class CallSession {
 
   async sendGreeting(): Promise<void> {
     if (this.isEnded()) return;
+    console.log(`[${this.callSid}] sendGreeting starting, text="${this.greetingText}" streamSid=${this.streamSid}`);
     try {
       // Record the greeting so the LLM won't re-introduce itself on the first turn.
       this.history.push({ role: 'assistant', content: this.greetingText });
@@ -294,7 +311,9 @@ export class CallSession {
       // personalized per call (guest name + purpose) so they're always synthesized live.
       const cached = this.greetingText === inboundGreetingText ? getCachedGreeting() : null;
       const audio = cached ?? await synthesizeSpeech(this.greetingText);
+      console.log(`[${this.callSid}] Greeting audio ready: ${audio.length} bytes (cached=${Boolean(cached)})`);
       if (audio.length > 0) await this.streamAudioWithNoiseAndWaitMark(audio);
+      console.log(`[${this.callSid}] Greeting playback wait finished`);
     } catch (err) {
       console.error(`[${this.callSid}] Greeting error:`, err);
     } finally {
