@@ -4,6 +4,7 @@ import asyncio
 import base64
 import json
 import os
+import queue
 import re
 import secrets
 import time
@@ -2364,8 +2365,7 @@ def _mentions_transfer_intent(reply_text: str) -> bool:
     return any(phrase in lowered for phrase in _TRANSFER_INTENT_PHRASES)
 
 
-def run_voice_agent_turn(phone: str, text: str, history: list[dict], outbound_purpose: Optional[str] = None) -> tuple[str, bool]:
-    """Run one voice conversation turn. Returns (spoken_reply, should_transfer)."""
+def _build_voice_system_prompt(phone: str, outbound_purpose: Optional[str]) -> str:
     today = now_local()
     outbound_block = (
         f"""
@@ -2378,7 +2378,7 @@ conversational, not pushy. Once the purpose has been addressed, answer questions
         if outbound_purpose
         else ""
     )
-    system_prompt = f"""
+    return f"""
 You are the phone host for {RESTAURANT_NAME}, a halal Chinese hotpot & grill buffet in Singapore.
 Today is {today.strftime('%A, %Y-%m-%d')}. The caller's phone number is already known ({phone}) — never ask for it.
 You are speaking on a live phone call, not chatting on text. Talk like a warm, genuinely friendly host who
@@ -2408,66 +2408,142 @@ Guidelines:
 - Never claim you did something you didn't. Only say you're transferring the call if you actually called transfer_to_staff this turn; only say you sent a link if you actually called send_link this turn.
 """.strip()
 
+
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+
+
+def _consume_voice_stream(stream, sentence_queue: "queue.Queue") -> tuple[str, dict]:
+    """Iterate one streaming chat completion. Plain-text deltas are sentence-split and
+    pushed onto sentence_queue as soon as each sentence completes, so speak_stream_turn
+    can start TTS on sentence 1 before the model has even written sentence 2. Tool-call
+    deltas are accumulated (a function call can't be split into speech — it must arrive
+    whole before it can be executed) and returned instead, since a tool-calling round
+    never produces speakable content on its own."""
+    content_buffer = ""
+    sentence_buffer = ""
+    tool_call_fragments: dict[int, dict] = {}
+    for chunk in stream:
+        delta = chunk.choices[0].delta
+        if getattr(delta, "tool_calls", None):
+            for tc_delta in delta.tool_calls:
+                frag = tool_call_fragments.setdefault(tc_delta.index, {"id": "", "name": "", "arguments": ""})
+                if tc_delta.id:
+                    frag["id"] = tc_delta.id
+                if tc_delta.function and tc_delta.function.name:
+                    frag["name"] += tc_delta.function.name
+                if tc_delta.function and tc_delta.function.arguments:
+                    frag["arguments"] += tc_delta.function.arguments
+        if getattr(delta, "content", None):
+            content_buffer += delta.content
+            sentence_buffer += delta.content
+            parts = _SENTENCE_SPLIT_RE.split(sentence_buffer)
+            if len(parts) > 1:
+                for complete in parts[:-1]:
+                    complete = complete.strip()
+                    if complete and not tool_call_fragments:
+                        sentence_queue.put(complete)
+                sentence_buffer = parts[-1]
+
+    if not tool_call_fragments:
+        remaining = sentence_buffer.strip()
+        if remaining:
+            sentence_queue.put(remaining)
+    return content_buffer, tool_call_fragments
+
+
+def stream_voice_agent_turn(
+    phone: str,
+    text: str,
+    history: list[dict],
+    outbound_purpose: Optional[str],
+    sentence_queue: "queue.Queue",
+    result_holder: dict,
+) -> None:
+    """Blocking — run via asyncio.to_thread. Resolves any tool calls the same way the
+    old non-streaming version did (round-trip, execute, loop), since a function call
+    can't be spoken; only the final plain-text reply streams sentence-by-sentence into
+    sentence_queue as it's generated. Always ends by putting None onto the queue, and
+    fills result_holder with the full reply text and should_transfer for history/logging."""
+    system_prompt = _build_voice_system_prompt(phone, outbound_purpose)
     messages = [{"role": "system", "content": system_prompt}, *history, {"role": "user", "content": text}]
     should_transfer = False
 
+    def _give_up(reply: str) -> None:
+        result_holder["reply"] = reply
+        result_holder["should_transfer"] = should_transfer
+        sentence_queue.put(reply)
+        sentence_queue.put(None)
+
     for _ in range(4):
         try:
-            completion = voice_client.chat.completions.create(
+            stream = voice_client.chat.completions.create(
                 model=VOICE_GROQ_MODEL,
                 messages=messages,
                 tools=VOICE_TOOLS,
                 tool_choice="auto",
                 temperature=0.4,
                 max_tokens=150,
+                stream=True,
             )
+            content_buffer, tool_call_fragments = _consume_voice_stream(stream, sentence_queue)
         except Exception as exc:  # noqa: BLE001 - retry once, the fast voice model occasionally emits a malformed tool call
-            logger.warning("Voice completion failed, retrying once: %s", exc)
+            logger.warning("Voice completion stream failed, retrying once: %s", exc)
             try:
-                completion = voice_client.chat.completions.create(
+                stream = voice_client.chat.completions.create(
                     model=VOICE_GROQ_MODEL,
                     messages=messages,
                     tools=VOICE_TOOLS,
                     tool_choice="auto",
                     temperature=0.4,
                     max_tokens=150,
+                    stream=True,
                 )
+                content_buffer, tool_call_fragments = _consume_voice_stream(stream, sentence_queue)
             except Exception as retry_exc:  # noqa: BLE001
-                logger.warning("Voice completion failed again, giving up this turn: %s", retry_exc)
-                return "Sorry, I'm having a little trouble on my end — give me just a moment and try again?", should_transfer
-        message = completion.choices[0].message
-        tool_calls = getattr(message, "tool_calls", None)
-        if not tool_calls:
-            reply = _strip_leaked_function_syntax((message.content or "").strip() or "Sorry, could you say that again?")
-            if not should_transfer and _mentions_transfer_intent(reply) and STAFF_TRANSFER_NUMBER:
-                should_transfer = True
-            return reply, should_transfer
+                logger.warning("Voice completion stream failed again, giving up this turn: %s", retry_exc)
+                _give_up("Sorry, I'm having a little trouble on my end — give me just a moment and try again?")
+                return
 
-        messages.append({
-            "role": "assistant",
-            "content": message.content or "",
-            "tool_calls": [
-                {"id": c.id, "type": "function", "function": {"name": c.function.name, "arguments": c.function.arguments}}
-                for c in tool_calls
-            ],
-        })
-        for call in tool_calls:
-            try:
-                args = json.loads(call.function.arguments or "{}")
-            except json.JSONDecodeError:
-                args = {}
-            if call.function.name == "transfer_to_staff":
-                should_transfer = True
-                result = {"status": "transfer_ready" if STAFF_TRANSFER_NUMBER else "transfer_unavailable"}
-            else:
+        if tool_call_fragments:
+            ordered_calls = [tool_call_fragments[i] for i in sorted(tool_call_fragments)]
+            messages.append({
+                "role": "assistant",
+                "content": content_buffer or "",
+                "tool_calls": [
+                    {"id": c["id"], "type": "function", "function": {"name": c["name"], "arguments": c["arguments"]}}
+                    for c in ordered_calls
+                ],
+            })
+            for call in ordered_calls:
                 try:
-                    result = execute_tool_call(call.function.name, args, phone)
-                except Exception as exc:  # noqa: BLE001
-                    result = {"error": str(exc)}
-            messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(result, default=str)})
+                    args = json.loads(call["arguments"] or "{}")
+                except json.JSONDecodeError:
+                    args = {}
+                if call["name"] == "transfer_to_staff":
+                    should_transfer = True
+                    result = {"status": "transfer_ready" if STAFF_TRANSFER_NUMBER else "transfer_unavailable"}
+                else:
+                    try:
+                        result = execute_tool_call(call["name"], args, phone)
+                    except Exception as exc:  # noqa: BLE001
+                        result = {"error": str(exc)}
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": call["id"] or call["name"],
+                    "content": json.dumps(result, default=str),
+                })
+            continue
+
+        reply = _strip_leaked_function_syntax(content_buffer.strip() or "Sorry, could you say that again?")
+        if not should_transfer and _mentions_transfer_intent(reply) and STAFF_TRANSFER_NUMBER:
+            should_transfer = True
+        result_holder["reply"] = reply
+        result_holder["should_transfer"] = should_transfer
+        sentence_queue.put(None)
+        return
 
     fallback = "I'm having trouble with that right now." if not should_transfer else "Let me connect you with our team now."
-    return fallback, should_transfer
+    _give_up(fallback)
 
 
 _NUMBER_ONES = [
@@ -2717,26 +2793,72 @@ async def speak_turn(ws: WebSocket, call_state: dict, text: str, should_transfer
         await asyncio.to_thread(execute_call_transfer, call_sid, caller_phone)
 
 
+async def speak_stream_turn(
+    ws: WebSocket,
+    call_state: dict,
+    sentence_queue: "queue.Queue",
+    speaking_task_holder: dict,
+    result_holder: dict,
+) -> None:
+    """Consumes sentences as stream_voice_agent_turn generates them, pipelining TTS
+    synthesis for the next sentence with playback of the current one so the gap between
+    sentences is close to zero instead of a full TTS round-trip each time."""
+    stream_sid = call_state["stream_sid"]
+    call_sid = call_state["call_sid"]
+    caller_phone = call_state["phone"]
+    live_tasks: list[asyncio.Task] = []
+
+    def spawn(coro):
+        task = asyncio.create_task(coro)
+        live_tasks.append(task)
+        return task
+
+    try:
+        current_text = await spawn(asyncio.to_thread(sentence_queue.get))
+        current_audio_task = spawn(deepgram_tts(current_text)) if current_text else None
+
+        while current_text is not None:
+            audio_bytes = await current_audio_task
+            mark_name = f"reply-{uuid.uuid4().hex[:8]}"
+            call_state["awaited_mark"] = mark_name
+            call_state["mark_event"].clear()
+            await send_audio_to_twilio(ws, stream_sid, audio_bytes, mark_name=mark_name)
+
+            # Fetch and start synthesizing the NEXT sentence concurrently with waiting
+            # for this one to finish playing, so its audio is ready (or nearly) the
+            # instant this sentence's mark ack arrives.
+            next_text_task = spawn(asyncio.to_thread(sentence_queue.get))
+            mark_wait_task = spawn(asyncio.wait_for(call_state["mark_event"].wait(), timeout=15.0))
+
+            next_text = await next_text_task
+            next_audio_task = spawn(deepgram_tts(next_text)) if next_text else None
+
+            try:
+                await mark_wait_task
+            except asyncio.TimeoutError:
+                pass
+
+            current_text = next_text
+            current_audio_task = next_audio_task
+    except asyncio.CancelledError:
+        for t in live_tasks:
+            if not t.done():
+                t.cancel()
+        raise
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Streaming TTS/send failed for call %s: %s", call_sid, exc)
+    finally:
+        speaking_task_holder["active"] = False
+
+    if result_holder.get("should_transfer") and STAFF_TRANSFER_NUMBER:
+        await asyncio.sleep(0.3)
+        await asyncio.to_thread(execute_call_transfer, call_sid, caller_phone)
+
+
 async def handle_voice_turn(ws: WebSocket, call_state: dict, transcript: str) -> None:
     phone = call_state["phone"]
     history = call_state["history"]
     insert_message(phone, "in", f"[call] {transcript}")
-
-    try:
-        reply_text, should_transfer = await asyncio.to_thread(
-            run_voice_agent_turn,
-            phone,
-            transcript,
-            history,
-            call_state.get("purpose") if call_state.get("outbound") else None,
-        )
-    except Exception as exc:  # noqa: BLE001 - a live call must never go silent, no matter what breaks upstream
-        logger.warning("Voice turn failed entirely for %s: %s", phone, exc)
-        reply_text, should_transfer = "Sorry, I'm having some trouble on my end. Could you say that again?", False
-    insert_message(phone, "out", f"[call] {reply_text}")
-    history.append({"role": "user", "content": transcript})
-    history.append({"role": "assistant", "content": reply_text})
-    call_state["history"] = history[-10:]
 
     # A finalized transcript means the caller genuinely said something real, so any
     # still-playing prior reply is now stale — cancel it outright regardless of the
@@ -2744,12 +2866,37 @@ async def handle_voice_turn(ws: WebSocket, call_state: dict, transcript: str) ->
     # doesn't apply once we actually have real content to respond to).
     await cancel_current_speech(ws, call_state)
 
+    sentence_queue: "queue.Queue" = queue.Queue()
+    result_holder: dict = {}
+    llm_task = asyncio.create_task(
+        asyncio.to_thread(
+            stream_voice_agent_turn,
+            phone,
+            transcript,
+            history,
+            call_state.get("purpose") if call_state.get("outbound") else None,
+            sentence_queue,
+            result_holder,
+        )
+    )
+
     speaking_state = {"active": True}
     call_state["speaking"] = speaking_state
     call_state["speak_started_at"] = time.monotonic()
     call_state["speak_task"] = asyncio.create_task(
-        speak_turn(ws, call_state, reply_text, should_transfer, speaking_state)
+        speak_stream_turn(ws, call_state, sentence_queue, speaking_state, result_holder)
     )
+
+    try:
+        await llm_task
+    except Exception as exc:  # noqa: BLE001 - a live call must never go silent, no matter what breaks upstream
+        logger.warning("Voice turn failed entirely for %s: %s", phone, exc)
+
+    reply_text = result_holder.get("reply", "Sorry, could you say that again?")
+    insert_message(phone, "out", f"[call] {reply_text}")
+    history.append({"role": "user", "content": transcript})
+    history.append({"role": "assistant", "content": reply_text})
+    call_state["history"] = history[-10:]
 
 
 async def pump_deepgram_transcripts(deepgram_ws, ws: WebSocket, call_state: dict) -> None:
