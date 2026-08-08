@@ -23,6 +23,15 @@ async function main(): Promise<void> {
   await presynthesizeGreeting();
 
   const app = express();
+  // Express has no built-in access log (unlike uvicorn, which the Python app relied on
+  // for every "call now" debugging session this project). Without this, HTTP traffic
+  // is completely invisible in Render's logs - added after a real debugging session
+  // where a 35s connected call left zero log trace, making it impossible to tell
+  // whether the webhook was even hit.
+  app.use((req, _res, next) => {
+    console.log(`${req.method} ${req.originalUrl}`);
+    next();
+  });
   app.use(dashboardAuthMiddleware);
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
@@ -68,6 +77,7 @@ async function main(): Promise<void> {
   const wss = new WebSocketServer({ server, path: '/media-stream' });
 
   wss.on('connection', (ws: WebSocket) => {
+    console.log('[WS] Twilio Media Stream connected');
     let session: CallSession | null = null;
 
     ws.on('message', (raw: WebSocket.RawData) => {
@@ -78,41 +88,52 @@ async function main(): Promise<void> {
         return;
       }
 
-      switch (message.event) {
-        case 'start': {
-          const start = message.start as Record<string, any>;
-          const callSid = start.callSid as string;
-          const streamSid = start.streamSid as string;
-          const params = (start.customParameters ?? {}) as Record<string, string>;
-          const phone = params.phone ?? 'unknown';
-          const outbound = params.outbound === 'true';
-          const purpose = params.purpose ?? null;
-          const greeting = params.greeting ?? '';
+      try {
+        switch (message.event) {
+          case 'start': {
+            const start = message.start as Record<string, any>;
+            const callSid = start.callSid as string;
+            const streamSid = start.streamSid as string;
+            const params = (start.customParameters ?? {}) as Record<string, string>;
+            const phone = params.phone ?? 'unknown';
+            const outbound = params.outbound === 'true';
+            const purpose = params.purpose ?? null;
+            const greeting = params.greeting ?? '';
+            console.log(`[WS] Call started: ${callSid} phone=${phone} outbound=${outbound}`);
 
-          session = new CallSession(callSid, ws, phone, outbound, purpose, greeting);
-          session.setStreamSid(streamSid);
-          setTimeout(() => session?.sendGreeting(), 50);
-          break;
+            session = new CallSession(callSid, ws, phone, outbound, purpose, greeting);
+            session.setStreamSid(streamSid);
+            setTimeout(() => session?.sendGreeting(), 50);
+            break;
+          }
+          case 'media': {
+            const media = message.media as Record<string, string>;
+            session?.handleAudioChunk(media.payload);
+            break;
+          }
+          case 'mark': {
+            const mark = message.mark as Record<string, string>;
+            session?.handleMarkEvent(mark.name);
+            break;
+          }
+          case 'stop': {
+            console.log('[WS] Call stopped');
+            session?.end();
+            session = null;
+            break;
+          }
         }
-        case 'media': {
-          const media = message.media as Record<string, string>;
-          session?.handleAudioChunk(media.payload);
-          break;
-        }
-        case 'mark': {
-          const mark = message.mark as Record<string, string>;
-          session?.handleMarkEvent(mark.name);
-          break;
-        }
-        case 'stop': {
-          session?.end();
-          session = null;
-          break;
-        }
+      } catch (err) {
+        // A synchronous throw here would otherwise be an uncaught exception on the
+        // process (this handler isn't inside Express's request/error-handling chain).
+        console.error('[WS] Error handling message:', err);
       }
     });
 
-    ws.on('close', () => session?.end());
+    ws.on('close', () => {
+      console.log('[WS] Connection closed');
+      session?.end();
+    });
     ws.on('error', (err: Error) => {
       console.error('[WS] WebSocket error:', err.message);
       session?.end();
