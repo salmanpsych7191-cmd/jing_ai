@@ -188,7 +188,23 @@ export class CallSession {
       if (queueWaiter) { const w = queueWaiter; queueWaiter = null; w(); }
     };
 
-    const turnPromise = runTurn(onSentence).finally(() => {
+    // A live call must never go silent, no matter what breaks upstream (a hung LLM
+    // request, a stalled tool call, anything). This is a hard ceiling independent of
+    // the LLM client's own request timeout - it guarantees recovery even if the hang
+    // happens somewhere the client-level timeout doesn't cover.
+    const TURN_TIMEOUT_MS = 12000;
+    let timedOut = false;
+    const turnPromise = Promise.race([
+      runTurn(onSentence),
+      new Promise<{ reply: string; shouldTransfer: boolean }>((resolve) => {
+        setTimeout(() => {
+          timedOut = true;
+          console.warn(`[${this.callSid}] Turn timed out after ${TURN_TIMEOUT_MS}ms, forcing a fallback reply`);
+          onSentence("Sorry, that's taking a bit longer than expected — could you say that again?");
+          resolve({ reply: '', shouldTransfer: false });
+        }, TURN_TIMEOUT_MS);
+      }),
+    ]).finally(() => {
       producerDone = true;
       if (queueWaiter) { const w = queueWaiter; queueWaiter = null; w(); }
     });

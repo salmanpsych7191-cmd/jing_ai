@@ -134,7 +134,9 @@ export async function streamVoiceAgentTurn(
   for (let round = 0; round < 4; round++) {
     let contentBuffer = '';
     let toolCalls: ToolCallFragment[] = [];
+    const roundStart = Date.now();
     try {
+      console.log(`Voice LLM round ${round} starting (model=${ENV.voiceLlmModel})`);
       const stream = await voiceClient.chat.completions.create({
         model: ENV.voiceLlmModel,
         messages,
@@ -144,7 +146,9 @@ export async function streamVoiceAgentTurn(
         max_tokens: 150,
         stream: true,
       });
+      console.log(`Voice LLM round ${round}: stream object received after ${Date.now() - roundStart}ms, consuming...`);
       ({ contentBuffer, toolCalls } = await consumeVoiceStream(stream as any, onSentence));
+      console.log(`Voice LLM round ${round}: done after ${Date.now() - roundStart}ms, contentLen=${contentBuffer.length} toolCalls=${toolCalls.length}`);
     } catch (err) {
       console.warn('Voice completion stream failed, retrying once:', err);
       try {
