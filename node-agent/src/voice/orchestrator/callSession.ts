@@ -67,17 +67,35 @@ export class CallSession {
   }
 
   private mediaChunkCount = 0;
+  private energyMin = Infinity;
+  private energyMax = -Infinity;
+  private energySum = 0;
+  private energyCount = 0;
 
   handleAudioChunk(base64Payload: string): void {
     if (this.state === 'ended') return;
     const buffer = Buffer.from(base64Payload, 'base64');
     this.mediaChunkCount++;
+
+    const liveEnergy = calcEnergy(buffer);
+    this.energyMin = Math.min(this.energyMin, liveEnergy);
+    this.energyMax = Math.max(this.energyMax, liveEnergy);
+    this.energySum += liveEnergy;
+    this.energyCount++;
     if (this.mediaChunkCount % 250 === 0) {
-      console.log(`[${this.callSid}] Received ${this.mediaChunkCount} inbound audio chunks so far (state=${this.state})`);
+      const avg = this.energyCount ? (this.energySum / this.energyCount).toFixed(1) : 'n/a';
+      console.log(
+        `[${this.callSid}] Received ${this.mediaChunkCount} inbound chunks (state=${this.state}) ` +
+        `energy min=${this.energyMin.toFixed(1)} max=${this.energyMax.toFixed(1)} avg=${avg}`,
+      );
+      this.energyMin = Infinity;
+      this.energyMax = -Infinity;
+      this.energySum = 0;
+      this.energyCount = 0;
     }
 
     if (this.state === 'speaking') {
-      const energy = calcEnergy(buffer);
+      const energy = liveEnergy;
       const elapsedMs = Date.now() - this.speakStartedAt;
       if (energy > BARGE_IN_ENERGY && elapsedMs >= BARGE_IN_GRACE_MS) {
         this.wasInterruptedThisTurn = true;
