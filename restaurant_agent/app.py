@@ -2474,6 +2474,19 @@ async def clear_twilio_playback(ws: WebSocket, stream_sid: str) -> None:
 # heard anything they say "hello?" again, repeatedly cancelling every attempt.
 BARGE_IN_GRACE_SECONDS = 1.2
 
+# Reflexive check-ins ("hello?", "are you there?") said while our own reply is still
+# within the grace window shouldn't restart the turn — the caller is just checking the
+# line is live, not saying something new. A real reply to an actual question ("yes",
+# "50 people", "Friday") must still go through immediately, so this list stays narrow.
+_FILLER_TRANSCRIPTS = {
+    "hello", "hi", "hey", "hello hello", "anybody there",
+    "are you there", "can you hear me", "who is this",
+}
+
+
+def _is_filler_transcript(text: str) -> bool:
+    return text.strip().lower().rstrip("?.!").strip() in _FILLER_TRANSCRIPTS
+
 
 async def cancel_current_speech(ws: WebSocket, call_state: dict) -> None:
     speaking = call_state.get("speaking")
@@ -2601,8 +2614,19 @@ async def pump_deepgram_transcripts(deepgram_ws, ws: WebSocket, call_state: dict
         if event.get("speech_final") and buffer_parts:
             full_transcript = " ".join(buffer_parts).strip()
             buffer_parts.clear()
-            if full_transcript:
-                await handle_voice_turn(ws, call_state, full_transcript)
+            if not full_transcript:
+                continue
+
+            speaking = call_state.get("speaking")
+            still_in_grace = (
+                time.monotonic() - call_state.get("speak_started_at", 0.0) < BARGE_IN_GRACE_SECONDS
+            )
+            if speaking and speaking.get("active") and still_in_grace and _is_filler_transcript(full_transcript):
+                # The caller is just checking the line is live, not saying something new -
+                # let the in-flight greeting/reply keep playing uninterrupted.
+                continue
+
+            await handle_voice_turn(ws, call_state, full_transcript)
 
 
 @app.post("/webhook/voice")
