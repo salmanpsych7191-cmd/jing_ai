@@ -1181,21 +1181,25 @@ document.getElementById('refreshVoiceDiagBtn')?.addEventListener('click', refres
 
 document.getElementById('startOutboundCallBtn')?.addEventListener('click', async () => {
   const phone = document.getElementById('outboundPhone')?.value.trim();
-  const guestName = document.getElementById('outboundGuestName')?.value.trim() || 'Guest';
-  const purpose = document.getElementById('outboundPurpose')?.value.trim() || 'a reservation follow-up';
+  const companyName = document.getElementById('outboundCompanyName')?.value.trim();
+  const contactName = document.getElementById('outboundContactName')?.value.trim() || null;
   if (!phone) {
-    addMessage('system', 'Enter a guest phone number first.');
+    addMessage('system', 'Enter a company phone number first.');
+    return;
+  }
+  if (!companyName) {
+    addMessage('system', 'Enter a company name first.');
     return;
   }
   try {
     const response = await fetch(`${apiBase()}/api/voice/call-out`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, guest_name: guestName, purpose }),
+      body: JSON.stringify({ phone, company_name: companyName, contact_name: contactName }),
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.detail || 'Unable to place the call.');
-    addMessage('assistant', `Calling ${guestName} at ${phone} now (call SID ${result.call_sid}).`);
+    addMessage('assistant', `Calling ${companyName} at ${phone} now (call SID ${result.call_sid}).`);
   } catch (error) {
     addMessage('system', error.message);
   }

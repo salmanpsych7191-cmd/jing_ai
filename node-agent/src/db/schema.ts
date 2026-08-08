@@ -119,6 +119,21 @@ export async function initDb(): Promise<void> {
       created_at TEXT NOT NULL
     )
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS corporate_leads (
+      id TEXT PRIMARY KEY,
+      company_name TEXT NOT NULL,
+      contact_name TEXT,
+      phone TEXT NOT NULL,
+      pax INTEGER,
+      event_date TEXT,
+      status TEXT NOT NULL,
+      email TEXT,
+      follow_up_note TEXT,
+      summary TEXT,
+      created_at TEXT NOT NULL
+    )
+  `);
 }
 
 // Seed a starter floor plan matching JING's verified 90-seat capacity (individual mini

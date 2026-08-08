@@ -21,17 +21,32 @@ export function twilioVoiceClient(): ReturnType<typeof twilio> | null {
   return twilio(ENV.twilioAccountSid, ENV.twilioAuthToken);
 }
 
-// Shared by the manual "call now" API route and the scheduled booking-reminder call
-// job, so both place calls exactly the same way.
-export async function placeOutboundCall(phone: string, guestName: string, purpose: string): Promise<string> {
+// Manual "call now" outbound calls are B2B cold calls (JING Cold Call Script) -
+// pitching a company on corporate dining/team events, not a guest-facing call.
+export async function placeColdCall(phone: string, companyName: string, contactName?: string | null): Promise<string> {
   const client = twilioVoiceClient();
   if (!client) throw new Error('Twilio client not configured.');
+  const params = new URLSearchParams({ call_type: 'cold_call', company_name: companyName });
+  if (contactName) params.set('contact_name', contactName);
   const call = await client.calls.create({
     to: phone,
     from: ENV.twilioVoiceNumber,
-    url:
-      `${ENV.publicBaseUrl}/webhook/voice-outbound` +
-      `?guest_name=${encodeURIComponent(guestName)}&purpose=${encodeURIComponent(purpose)}`,
+    url: `${ENV.publicBaseUrl}/webhook/voice-outbound?${params.toString()}`,
+  });
+  return call.sid;
+}
+
+// Used by the scheduled 6-hour-before-booking reminder job - a guest-facing
+// confirmation call, deliberately kept on its own simple prompt rather than the
+// cold-call script (a guest who already booked isn't a B2B prospect).
+export async function placeBookingReminderCall(phone: string, guestName: string, purpose: string): Promise<string> {
+  const client = twilioVoiceClient();
+  if (!client) throw new Error('Twilio client not configured.');
+  const params = new URLSearchParams({ call_type: 'booking_reminder', guest_name: guestName, purpose });
+  const call = await client.calls.create({
+    to: phone,
+    from: ENV.twilioVoiceNumber,
+    url: `${ENV.publicBaseUrl}/webhook/voice-outbound?${params.toString()}`,
   });
   return call.sid;
 }

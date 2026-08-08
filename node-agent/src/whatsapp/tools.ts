@@ -136,3 +136,44 @@ export const VOICE_TOOLS = [
   ...AGENT_TOOLS.filter((t) => t.function.name !== 'notify_staff'),
   VOICE_TRANSFER_TOOL,
 ];
+
+// Used only on outbound B2B cold calls (JING Cold Call Script) - a wholly different
+// call type from guest-facing reservation calls, so it gets its own small tool set
+// instead of being mixed into VOICE_TOOLS.
+export const VOICE_LOG_LEAD_TOOL = {
+  type: 'function',
+  function: {
+    name: 'log_corporate_enquiry',
+    description:
+      'Log a corporate event enquiry captured on this cold call, and notify staff immediately. This is the ' +
+      "actual goal of the call - PAX + DATE captured, or a firm callback agreed - not just 'menu sent'. Call " +
+      'this once you have enough to log: PAX+date (held), PAX+rough timing with no date (warm), an agreed ' +
+      "callback with no event right now (callback), or the contact isn't interested but you still got their " +
+      'email (not_keen). Call it near the end of the call, after the key event question has been answered.',
+    parameters: {
+      type: 'object',
+      properties: {
+        company_name: { type: 'string', description: "The prospect's company name." },
+        contact_name: { type: 'string', description: 'Name of the person you spoke with, if given.' },
+        pax: { type: ['integer', 'string'], description: 'Approximate headcount for the event/team lunch, if known.' },
+        event_date: {
+          type: 'string',
+          description: "Event date or rough timing as mentioned, e.g. 'end of August' or a specific date. Leave out if none given.",
+        },
+        status: {
+          type: 'string',
+          enum: ['held', 'warm', 'callback', 'not_keen'],
+          description:
+            "'held' = has PAX+date, pencilled in awaiting confirm. 'warm' = has an event but no firm date yet. " +
+            "'callback' = no event now but agreed a follow-up call. 'not_keen' = not interested, just wants the menu.",
+        },
+        email: { type: 'string', description: "Contact's email for the corporate menu/brochure, if given." },
+        follow_up_note: { type: 'string', description: "When to follow up, e.g. 'call back in 2 days to confirm' or 'check back in 2 weeks'." },
+        summary: { type: 'string', description: 'One-line summary of the call outcome for staff.' },
+      },
+      required: ['company_name', 'status'],
+    },
+  },
+};
+
+export const VOICE_COLD_CALL_TOOLS = [VOICE_LOG_LEAD_TOOL];

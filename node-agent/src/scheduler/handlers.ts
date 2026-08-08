@@ -1,5 +1,5 @@
 import { registerJobHandler } from './index';
-import { sendWhatsAppMessage, placeOutboundCall } from '../telephony/twilio';
+import { sendWhatsAppMessage, placeBookingReminderCall } from '../telephony/twilio';
 
 export function registerAllJobHandlers(): void {
   registerJobHandler('send_whatsapp_message', async (payload) => {
@@ -8,7 +8,7 @@ export function registerAllJobHandlers(): void {
 
   registerJobHandler('voice_reminder_call', async (payload) => {
     try {
-      await placeOutboundCall(payload.phone, payload.guestName, payload.purpose);
+      await placeBookingReminderCall(payload.phone, payload.guestName, payload.purpose);
     } catch (err) {
       console.error(`Voice reminder call failed for booking ${payload.bookingId}:`, err);
     }

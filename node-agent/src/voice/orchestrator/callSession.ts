@@ -53,6 +53,10 @@ export class CallSession {
     private readonly outbound: boolean,
     private readonly purpose: string | null,
     private readonly greetingText: string,
+    // Only set for outbound cold calls (JING Cold Call Script) - a different call
+    // type from guest-facing reservation calls, so it drives an entirely different
+    // system prompt and tool set in the voice agent.
+    private readonly coldCall: { companyName: string; contactName: string | null } | null = null,
   ) {
     this.vad.on('speech_start', () => {
       console.log(`[${this.callSid}] VAD: speech_start (state=${this.state})`);
@@ -169,7 +173,11 @@ export class CallSession {
     this.history.push({ role: 'user', content: transcript });
     try {
       const fullReply = await this.speakStreamed(
-        (onSentence) => streamVoiceAgentTurn(this.phone, transcript, this.history.slice(0, -1), this.outbound ? this.purpose : null, onSentence, this.outbound),
+        (onSentence) => streamVoiceAgentTurn(
+          this.phone, transcript, this.history.slice(0, -1),
+          this.outbound ? this.purpose : null, onSentence, this.outbound,
+          this.outbound ? this.coldCall : null,
+        ),
       );
       if (fullReply) this.history.push({ role: 'assistant', content: fullReply });
     } catch (err) {

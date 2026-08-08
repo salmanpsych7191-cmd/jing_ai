@@ -14,7 +14,7 @@ import { verifyTwilioMiddleware } from './verifyTwilio';
 import { webhookVoice, webhookVoiceOutbound } from '../telephony/voiceWebhooks';
 import { CallSession } from '../voice/orchestrator/callSession';
 import { voiceDiagnostics } from '../voice/diagnostics';
-import { placeOutboundCall } from '../telephony/twilio';
+import { placeColdCall } from '../telephony/twilio';
 import { registerApiRoutes } from './apiRoutes';
 
 async function main(): Promise<void> {
@@ -75,9 +75,13 @@ async function main(): Promise<void> {
       });
       return;
     }
-    const { phone, guest_name: guestName = 'Guest', purpose = 'a reservation follow-up' } = req.body;
+    const { phone, company_name: companyName, contact_name: contactName = null } = req.body;
+    if (!companyName) {
+      res.status(400).json({ detail: 'company_name is required for an outbound cold call.' });
+      return;
+    }
     try {
-      const callSid = await placeOutboundCall(phone, guestName, purpose);
+      const callSid = await placeColdCall(phone, companyName, contactName);
       res.json({ status: 'calling', call_sid: callSid, phone });
     } catch (err: any) {
       res.status(400).json({ detail: err?.message ?? 'Could not place the call.' });
@@ -112,9 +116,12 @@ async function main(): Promise<void> {
             const outbound = params.outbound === 'true';
             const purpose = params.purpose ?? null;
             const greeting = params.greeting ?? '';
-            console.log(`[WS] Call started: ${callSid} phone=${phone} outbound=${outbound}`);
+            const coldCall = outbound && params.callType === 'cold_call'
+              ? { companyName: params.companyName ?? '', contactName: params.contactName ?? null }
+              : null;
+            console.log(`[WS] Call started: ${callSid} phone=${phone} outbound=${outbound} callType=${params.callType ?? 'n/a'}`);
 
-            session = new CallSession(callSid, ws, phone, outbound, purpose, greeting);
+            session = new CallSession(callSid, ws, phone, outbound, purpose, greeting, coldCall);
             session.setStreamSid(streamSid);
             setTimeout(() => session?.sendGreeting(), 50);
             break;

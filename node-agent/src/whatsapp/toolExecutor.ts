@@ -5,6 +5,7 @@ import {
 } from '../db/bookings';
 import { getLoyalty } from '../db/loyalty';
 import { reviewLinkUrl, recordCampaign } from '../db/campaigns';
+import { createCorporateLead, CorporateLeadStatus } from '../db/corporateLeads';
 import { sendWhatsAppMessage } from '../telephony/twilio';
 import { socialLinks } from '../knowledge';
 
@@ -77,7 +78,74 @@ export async function executeToolCall(name: string, args: any, phone: string): P
     return notifyStaffViaWhatsApp(phone, args.reason ?? 'Guest inquiry needs staff follow-up.');
   }
 
+  if (name === 'log_corporate_enquiry') {
+    return logCorporateEnquiry(phone, args);
+  }
+
   return { error: `Unknown tool '${name}'` };
+}
+
+const LEAD_STATUS_LABEL: Record<CorporateLeadStatus, string> = {
+  held: 'HELD — awaiting confirm',
+  warm: 'WARM — event likely, no firm date yet',
+  callback: 'CALLBACK — no event right now',
+  not_keen: 'NOT KEEN — menu requested only',
+};
+
+export async function logCorporateEnquiry(phone: string, args: any) {
+  const status: CorporateLeadStatus = ['held', 'warm', 'callback', 'not_keen'].includes(args.status)
+    ? args.status
+    : 'warm';
+  const paxNum = args.pax !== undefined && args.pax !== '' ? parseInt(String(args.pax), 10) : NaN;
+
+  const lead = await createCorporateLead({
+    companyName: args.company_name || 'Unknown company',
+    contactName: args.contact_name || null,
+    phone,
+    pax: Number.isFinite(paxNum) ? paxNum : null,
+    eventDate: args.event_date || null,
+    status,
+    email: args.email || null,
+    followUpNote: args.follow_up_note || null,
+    summary: args.summary || null,
+  });
+
+  const staffLines = [
+    `[${ENV.restaurantName}] New corporate enquiry (cold call)`,
+    `Company: ${lead.companyName}${lead.contactName ? ` (contact: ${lead.contactName})` : ''}`,
+    `Phone: ${phone}`,
+    lead.pax ? `PAX: ${lead.pax}` : null,
+    lead.eventDate ? `Date: ${lead.eventDate}` : null,
+    `Status: ${LEAD_STATUS_LABEL[status]}`,
+    lead.email ? `Email: ${lead.email} — please send the corporate menu/brochure manually.` : null,
+    lead.followUpNote ? `Follow-up: ${lead.followUpNote}` : null,
+    lead.summary ? `Notes: ${lead.summary}` : null,
+  ].filter(Boolean) as string[];
+  const staffNotified = ENV.staffTransferNumber
+    ? await sendWhatsAppMessage(ENV.staffTransferNumber, staffLines.join('\n'))
+    : false;
+
+  // The script's own "WhatsApp outreach after cold call" template - sent to the
+  // prospect's own number (the one we just called), reusing WhatsApp send since real
+  // email sending isn't wired up yet.
+  const followUpBody =
+    `Hi${lead.contactName ? ` ${lead.contactName}` : ''}, this is Mel from ${ENV.restaurantName}. ` +
+    `Thank you for taking the time to speak with me earlier.\n\n` +
+    `One of the reasons many companies choose us is our flexible dining concept, which makes it easy to ` +
+    `accommodate teams with different tastes and dietary requirements.\n\n` +
+    `If you have any questions or an upcoming team lunch or company event, feel free to reach out anytime` +
+    `${lead.followUpNote ? ` — I'll follow up as discussed (${lead.followUpNote}).` : '.'}\n\nHave a great day!`;
+  const prospectNotified = await sendWhatsAppMessage(phone, followUpBody);
+
+  return {
+    status: 'logged',
+    lead_id: lead.id,
+    staff_notified: staffNotified,
+    prospect_whatsapp_sent: prospectNotified,
+    note: lead.email
+      ? 'Enquiry logged and staff notified via WhatsApp — staff will send the brochure to the email manually.'
+      : 'Enquiry logged and staff notified via WhatsApp.',
+  };
 }
 
 export async function notifyStaffViaWhatsApp(customerPhone: string, reason: string) {
