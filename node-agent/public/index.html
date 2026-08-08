@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>JING | Halal Hotpot &amp; Grill Buffet — AI Operations</title>
+    <meta
+      name="description"
+      content="AI operations dashboard for JING Halal Hotpot & Grill Buffet — bookings, buffet capacity, loyalty, reviews, and an AI concierge."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">J</div>
+          <div>
+            <p class="eyebrow">Halal Hotpot &amp; Grill AI OS</p>
+            <h2 id="sidebarRestaurantName">JING | Halal Hotpot &amp; Grill Buffet</h2>
+          </div>
+        </div>
+
+        <nav class="nav-list" aria-label="Primary navigation">
+          <button class="nav-item active" data-view="dashboard" type="button">
+            <span class="nav-icon" aria-hidden="true">◈</span><span>Dashboard</span>
+          </button>
+          <button class="nav-item" data-view="menu" type="button">
+            <span class="nav-icon" aria-hidden="true">🍲</span><span>Menu &amp; Buffet</span>
+          </button>
+          <button class="nav-item" data-view="bookings" type="button">
+            <span class="nav-icon" aria-hidden="true">◌</span><span>Bookings</span>
+          </button>
+          <button class="nav-item" data-view="customers" type="button">
+            <span class="nav-icon" aria-hidden="true">◎</span><span>Customers</span>
+          </button>
+          <button class="nav-item" data-view="reviews" type="button">
+            <span class="nav-icon" aria-hidden="true">✦</span><span>Reviews</span>
+          </button>
+          <button class="nav-item" data-view="campaigns" type="button">
+            <span class="nav-icon" aria-hidden="true">↺</span><span>Campaigns</span>
+          </button>
+          <button class="nav-item" data-view="whatsapp" type="button">
+            <span class="nav-icon" aria-hidden="true">☼</span><span>WhatsApp</span>
+          </button>
+          <button class="nav-item" data-view="voice" type="button">
+            <span class="nav-icon" aria-hidden="true">◍</span><span>Voice</span>
+          </button>
+          <button class="nav-item" data-view="staff" type="button">
+            <span class="nav-icon" aria-hidden="true">⬢</span><span>Staff</span>
+          </button>
+          <button class="nav-item" data-view="assistant" type="button">
+            <span class="nav-icon" aria-hidden="true">✧</span><span>AI Assistant</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-card">
+          <p class="eyebrow">Halal-certified · Muslim-owned</p>
+          <h3 id="connectionStatus">WhatsApp ready</h3>
+          <p id="sidebarCapacityNote">Loading today's buffet capacity...</p>
+        </div>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <label class="search-box" aria-label="Search">
+            <span aria-hidden="true">⌕</span>
+            <input type="text" placeholder="Search bookings, customers, reviews" />
+          </label>
+          <div class="topbar-actions">
+            <div class="status-pill" id="topStageLabel">Live</div>
+            <button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications">🔔</button>
+            <div class="avatar" aria-hidden="true">JC</div>
+          </div>
+        </header>
+
+        <!-- DASHBOARD VIEW -->
+        <section class="view dashboard-view is-active" id="dashboardView" data-view="dashboard">
+          <section class="hero-card">
+            <div>
+              <p class="eyebrow">Buffet reservation command center</p>
+              <h1>Premium AI operations for <span id="heroRestaurantName">JING | Halal Hotpot &amp; Grill Buffet</span>.</h1>
+              <p class="lede">
+                An elevated Halal Chinese hotpot &amp; grill buffet — a seat for everyone at the table. Manage seatings,
+                track buffet capacity, run campaigns, and let the AI concierge handle the rest.
+              </p>
+            </div>
+            <div class="hero-actions">
+              <button class="assistant-launch-btn" id="assistantLaunchBtn" type="button">Start conversation</button>
+              <div class="hero-badge"><span class="dot"></span>Connected to API</div>
+              <div class="hero-badge halal-badge">☪ Halal-certified</div>
+              <div class="hero-note">WhatsApp delivery depends on Twilio sender approval.</div>
+            </div>
+          </section>
+
+          <section class="insight-strip" aria-label="Live data overview">
+            <article class="insight-card">
+              <p class="eyebrow">Live data layer</p>
+              <h3>Everything updates from your local database in real time.</h3>
+              <p>Every card and list refreshes automatically so the team can see customer activity at a glance.</p>
+            </article>
+            <article class="insight-card">
+              <p class="eyebrow">What matters today</p>
+              <ul class="insight-list" id="todayFocusList">
+                <li>Loading live activity...</li>
+              </ul>
+            </article>
+          </section>
+
+          <section class="kpi-grid">
+            <article class="kpi-card">
+              <div class="kpi-icon emerald" aria-hidden="true">✦</div>
+              <div>
+                <h3 id="todayBookingsMetric">0</h3>
+                <p>Today's Bookings</p>
+              </div>
+              <span class="trend up">+12%</span>
+            </article>
+            <article class="kpi-card">
+              <div class="kpi-icon blue" aria-hidden="true">🍲</div>
+              <div>
+                <h3 id="seatsLeftMetric">0</h3>
+                <p>Seats Left Today</p>
+              </div>
+              <span class="trend up" id="seatsLeftTrend">of 90</span>
+            </article>
+            <article class="kpi-card">
+              <div class="kpi-icon purple" aria-hidden="true">◎</div>
+              <div>
+                <h3 id="completedVisitsMetric">0</h3>
+                <p>Completed Visits</p>
+              </div>
+              <span class="trend up">+5%</span>
+            </article>
+            <article class="kpi-card">
+              <div class="kpi-icon orange" aria-hidden="true">⬢</div>
+              <div>
+                <h3 id="loyaltyMembersMetric">0</h3>
+                <p>Loyalty Members</p>
+              </div>
+              <span class="trend up">+14%</span>
+            </article>
+            <article class="kpi-card">
+              <div class="kpi-icon teal" aria-hidden="true">★</div>
+              <div>
+                <h3 id="googleRatingMetric">--</h3>
+                <p>Google Rating</p>
+              </div>
+              <span class="trend up" id="googleRatingTrend">Set GOOGLE_RATING</span>
+            </article>
+            <article class="kpi-card">
+              <div class="kpi-icon red" aria-hidden="true">✧</div>
+              <div>
+                <h3 id="aiConversationsMetric">0</h3>
+                <p>AI Conversations</p>
+              </div>
+              <span class="trend up">+18%</span>
+            </article>
+            <article class="kpi-card">
+              <div class="kpi-icon emerald" aria-hidden="true">$</div>
+              <div>
+                <h3 id="revenueMetric">S$0</h3>
+                <p>Revenue</p>
+              </div>
+              <span class="trend up">+9%</span>
+            </article>
+            <article class="kpi-card">
+              <div class="kpi-icon blue" aria-hidden="true">↺</div>
+              <div>
+                <h3 id="activeCampaignsMetric">0</h3>
+                <p>Active Campaigns</p>
+              </div>
+              <span class="trend up">+3</span>
+            </article>
+            <article class="kpi-card">
+              <div class="kpi-icon purple" aria-hidden="true">⏳</div>
+              <div>
+                <h3 id="waitlistMetric">0</h3>
+                <p>On Waitlist</p>
+              </div>
+              <span class="trend up" id="waitlistTrend">open</span>
+            </article>
+          </section>
+
+          <section class="content-grid">
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">Quick entry</p>
+                    <h3>Create a booking</h3>
+                  </div>
+                </div>
+                <form class="booking-grid" id="bookingForm">
+                  <input id="guestName" type="text" placeholder="Guest name" required />
+                  <input id="guestPhone" type="text" placeholder="Guest phone" required />
+                  <input id="bookingDate" type="date" required />
+                  <input id="bookingTime" type="time" required />
+                  <input id="bookingGuests" type="number" min="1" value="2" required />
+                  <select id="soupBasePreference">
+                    <option value="">Soup base preference (optional)</option>
+                    <option>Signature Mala</option>
+                    <option>Tom Yum</option>
+                    <option>Savoury Tomato</option>
+                    <option>Herbal Mushroom</option>
+                    <option>Creamy Herbal Chicken</option>
+                  </select>
+                  <input id="specialRequests" type="text" placeholder="Special requests" />
+                  <button class="primary-btn full-span" type="submit">Create live booking</button>
+                  <p class="form-hint full-span" id="bookingCapacityHint">Pick a date and time to see remaining seats.</p>
+                </form>
+              </section>
+
+              <section class="panel performance-panel">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">Performance</p>
+                    <h3>Weekly pulse</h3>
+                  </div>
+                  <button class="ghost-btn" id="viewReportBtn" type="button">View details</button>
+                </div>
+
+                <div class="performance-grid">
+                  <div class="mini-chart-card">
+                    <div class="mini-chart-header">
+                      <strong>Bookings</strong>
+                      <span class="trend up">+12%</span>
+                    </div>
+                    <div class="sparkline" id="bookingSparkline" aria-hidden="true">
+                      <span style="--h:34%"></span>
+                      <span style="--h:56%"></span>
+                      <span style="--h:76%"></span>
+                      <span style="--h:48%"></span>
+                      <span style="--h:82%"></span>
+                      <span style="--h:92%"></span>
+                      <span style="--h:68%"></span>
+                    </div>
+                    <p class="mini-chart-caption">7-day reservation trend</p>
+                  </div>
+
+                  <div class="mini-chart-card">
+                    <div class="mini-chart-header">
+                      <strong>Revenue</strong>
+                      <span class="trend up">+9%</span>
+                    </div>
+                    <div class="sparkline revenue" id="revenueSparkline" aria-hidden="true">
+                      <span style="--h:28%"></span>
+                      <span style="--h:44%"></span>
+                      <span style="--h:62%"></span>
+                      <span style="--h:54%"></span>
+                      <span style="--h:78%"></span>
+                      <span style="--h:88%"></span>
+                      <span style="--h:96%"></span>
+                    </div>
+                    <p class="mini-chart-caption">Estimated daily revenue</p>
+                  </div>
+
+                  <div class="mini-chart-card">
+                    <div class="mini-chart-header">
+                      <strong>Buffet capacity</strong>
+                      <span class="trend up" id="capacityTrendLabel">--</span>
+                    </div>
+                    <div class="review-gauge" id="capacityGauge">
+                      <div class="gauge-track">
+                        <div class="gauge-fill" id="capacityGaugeFill" style="--value:0%"></div>
+                      </div>
+                      <div class="gauge-labels">
+                        <span>Lunch</span>
+                        <span id="capacityGaugeValue">--</span>
+                        <span>Dinner</span>
+                      </div>
+                    </div>
+                    <p class="mini-chart-caption">Seats booked today, out of 90</p>
+                  </div>
+
+                  <div class="performance-insights">
+                    <div class="insight-row">
+                      <div class="insight-icon emerald" aria-hidden="true">✦</div>
+                      <div>
+                        <strong id="reviewHealthBadge">Healthy review flow</strong>
+                        <p>Follow-up and sentiment are ready for the next customer touchpoint.</p>
+                      </div>
+                    </div>
+                    <div class="insight-row">
+                      <div class="insight-icon blue" aria-hidden="true">↺</div>
+                      <div>
+                        <strong id="reviewFollowupBadge">Google review flow enabled</strong>
+                        <p>Review requests and loyalty reminders are prepared around the visit.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Recent bookings</p>
+                    <h3>Live records</h3>
+                  </div>
+                </div>
+                <div class="records-intro" id="recordsIntro">Loading the latest bookings from the live database...</div>
+                <div class="records" id="todayBookings"></div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Shortcuts</p>
+                    <h3>Jump to a section</h3>
+                  </div>
+                </div>
+                <div class="shortcut-grid">
+                  <button class="shortcut-card" type="button" data-view="assistant">
+                    <span class="shortcut-icon" aria-hidden="true">✧</span>
+                    <strong>AI Assistant</strong>
+                    <span>Open the concierge</span>
+                  </button>
+                  <button class="shortcut-card" type="button" data-view="menu">
+                    <span class="shortcut-icon" aria-hidden="true">🍲</span>
+                    <strong>Menu &amp; Buffet</strong>
+                    <span>Soup bases &amp; pricing</span>
+                  </button>
+                  <button class="shortcut-card" type="button" data-view="bookings">
+                    <span class="shortcut-icon" aria-hidden="true">◌</span>
+                    <strong>Bookings</strong>
+                    <span>Manage reservations</span>
+                  </button>
+                  <button class="shortcut-card" type="button" data-view="customers">
+                    <span class="shortcut-icon" aria-hidden="true">◎</span>
+                    <strong>Customers</strong>
+                    <span>Loyalty records</span>
+                  </button>
+                </div>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <!-- MENU & BUFFET VIEW -->
+        <section class="view" id="menuView" data-view="menu">
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Guest-facing knowledge</p>
+              <h2>Menu &amp; buffet details</h2>
+            </div>
+            <div class="status-pill">Powers the AI concierge</div>
+          </div>
+
+          <section class="insight-strip" aria-label="Buffet profile">
+            <article class="insight-card">
+              <p class="eyebrow">Profile</p>
+              <h3 id="menuTagline">An elevated Halal Chinese hotpot &amp; grill buffet.</h3>
+              <p id="menuFounderStory">Loading...</p>
+            </article>
+            <article class="insight-card">
+              <p class="eyebrow">Location &amp; hours</p>
+              <ul class="insight-list" id="menuLocationList">
+                <li>Loading...</li>
+              </ul>
+            </article>
+          </section>
+
+          <div class="content-grid three-col" id="pricingCards"></div>
+
+          <div class="content-grid">
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Soup bases</p>
+                    <h3>5 house-made broths</h3>
+                  </div>
+                </div>
+                <div class="records" id="soupBaseList"></div>
+              </section>
+            </div>
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Proteins &amp; seafood</p>
+                    <h3>Featured on the buffet</h3>
+                  </div>
+                </div>
+                <div class="records" id="proteinList"></div>
+              </section>
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Go premium</p>
+                    <h3>A la carte add-ons</h3>
+                  </div>
+                </div>
+                <div class="records" id="addonList"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- BOOKINGS VIEW -->
+        <section class="view" id="bookingsView" data-view="bookings">
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Reservations</p>
+              <h2>Manage bookings</h2>
+            </div>
+            <button class="secondary-btn" id="newBookingBtn" type="button">+ New booking</button>
+          </div>
+
+          <section class="panel" id="capacityPanel">
+            <div class="panel-head slim">
+              <div>
+                <p class="eyebrow">Buffet capacity</p>
+                <h3>Seats remaining by session</h3>
+              </div>
+              <label class="compact-select-wrap">
+                <input id="capacityDate" type="date" class="compact-select" />
+              </label>
+            </div>
+            <div class="loyalty-stats" id="capacitySessionStats">
+              <div class="stat-block"><strong id="capLunchRemaining">--</strong><span>Lunch seats left</span></div>
+              <div class="stat-block"><strong id="capDinnerRemaining">--</strong><span>Dinner seats left</span></div>
+              <div class="stat-block"><strong id="capWaitlistCount">--</strong><span>Waiting for a table</span></div>
+            </div>
+          </section>
+
+          <div class="content-grid">
+            <div class="stack-column">
+              <section class="panel booking-panel" id="bookingPanel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Front desk entry</p>
+                    <h3>Create Booking Directly</h3>
+                  </div>
+                </div>
+                <form class="booking-grid" id="bookingForm2">
+                  <input id="guestName2" type="text" placeholder="Guest name" required />
+                  <input id="guestPhone2" type="text" placeholder="Guest phone" required />
+                  <input id="bookingDate2" type="date" required />
+                  <input id="bookingTime2" type="time" required />
+                  <input id="bookingGuests2" type="number" min="1" value="2" required />
+                  <input id="specialRequests2" type="text" placeholder="Special requests" />
+                  <button class="primary-btn full-span" type="submit">Create live booking</button>
+                </form>
+              </section>
+
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Fully booked slots</p>
+                    <h3>Waitlist</h3>
+                  </div>
+                </div>
+                <div class="records" id="waitlistRecords">Loading waitlist...</div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Floor plan</p>
+                    <h3>Tables</h3>
+                  </div>
+                </div>
+                <p class="panel-note">Starter layout matching the 90-seat capacity — edit names/sections to match the real floor plan.</p>
+                <form class="booking-grid" id="addTableForm">
+                  <input id="newTableName" type="text" placeholder="Table name, e.g. T23" required />
+                  <input id="newTableCapacity" type="number" min="1" value="4" required />
+                  <input id="newTableSection" type="text" placeholder="Section (optional)" />
+                  <button class="secondary-btn full-span" type="submit">Add table</button>
+                </form>
+                <div class="records" id="tableRecords">Loading tables...</div>
+              </section>
+            </div>
+            <div class="stack-column">
+              <section class="panel records-panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">All bookings</p>
+                    <h3>Reservation records</h3>
+                  </div>
+                  <select id="bookingFilter" class="compact-select">
+                    <option value="all">All bookings</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="visited">Visited</option>
+                    <option value="no_show">No-show</option>
+                  </select>
+                </div>
+                <div class="records" id="allBookings"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- CUSTOMERS VIEW -->
+        <section class="view" id="customersView" data-view="customers">
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Guest database</p>
+              <h2>Customers &amp; loyalty</h2>
+            </div>
+          </div>
+          <div class="content-grid">
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Loyalty summary</p>
+                    <h3>Member overview</h3>
+                  </div>
+                </div>
+                <div class="loyalty-stats" id="loyaltyStats">
+                  <div class="stat-block">
+                    <strong id="loyaltyMembersBig">0</strong>
+                    <span>Total members</span>
+                  </div>
+                  <div class="stat-block">
+                    <strong id="loyaltyPointsAvg">0</strong>
+                    <span>Avg. points</span>
+                  </div>
+                  <div class="stat-block">
+                    <strong id="loyaltyRewardsReady">0</strong>
+                    <span>Rewards ready</span>
+                  </div>
+                </div>
+                <div class="tier-legend" id="tierLegend">
+                  <span class="badge tier-bronze">Bronze &lt; 200</span>
+                  <span class="badge tier-silver">Silver 200–499</span>
+                  <span class="badge tier-gold">Gold 500+</span>
+                </div>
+              </section>
+            </div>
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Customer list</p>
+                    <h3>Loyalty records</h3>
+                  </div>
+                </div>
+                <div class="records" id="customerRecords">Loading customers...</div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- REVIEWS VIEW -->
+        <section class="view" id="reviewsView" data-view="reviews">
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Reputation</p>
+              <h2>Reviews &amp; responses</h2>
+            </div>
+          </div>
+          <div class="content-grid">
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">AI drafting</p>
+                    <h3>Draft a review response</h3>
+                  </div>
+                </div>
+                <p class="panel-note">Generate a friendly, on-brand reply to a customer review using the AI model.</p>
+                <div class="button-row">
+                  <button class="secondary-btn" id="draftBtn2" type="button">Draft response</button>
+                </div>
+              </section>
+            </div>
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Outreach</p>
+                    <h3>Send review request</h3>
+                  </div>
+                </div>
+                <p class="panel-note">Send a Google Maps review link to the active guest phone number.</p>
+                <div class="button-row">
+                  <button class="secondary-btn" id="sendReviewRequestBtn2" type="button">Send review request</button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- CAMPAIGNS VIEW -->
+        <section class="view" id="campaignsView" data-view="campaigns">
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Outreach</p>
+              <h2>Campaigns &amp; reminders</h2>
+            </div>
+          </div>
+          <div class="content-grid three-col">
+            <div class="stack-column">
+              <section class="panel campaign-card">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Win-back</p>
+                    <h3>Repeat-visit reminder</h3>
+                  </div>
+                </div>
+                <p class="panel-note">Nudge a past guest to book their next buffet seating.</p>
+                <button class="secondary-btn" id="sendRetailReminderBtn2" type="button">Send reminder</button>
+              </section>
+            </div>
+            <div class="stack-column">
+              <section class="panel campaign-card">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Social</p>
+                    <h3>Instagram DM test</h3>
+                  </div>
+                </div>
+                <p class="panel-note">Test the Instagram DM auto-reply flow.</p>
+                <button class="secondary-btn" id="sendInstagramBtn2" type="button">Test Instagram DM</button>
+              </section>
+            </div>
+            <div class="stack-column">
+              <section class="panel campaign-card">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Reviews</p>
+                    <h3>Review request</h3>
+                  </div>
+                </div>
+                <p class="panel-note">Request a Google Maps review from a recent guest.</p>
+                <button class="secondary-btn" id="sendReviewRequestBtn3" type="button">Send review request</button>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- WHATSAPP VIEW -->
+        <section class="view" id="whatsappView" data-view="whatsapp">
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Delivery</p>
+              <h2>WhatsApp diagnostics</h2>
+            </div>
+          </div>
+          <div class="content-grid">
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Twilio diagnostics</p>
+                    <h3>WhatsApp sender check</h3>
+                  </div>
+                </div>
+                <div class="diagnostics-box" id="twilioDiagnostics">Loading Twilio diagnostics...</div>
+                <div class="sandbox-card" id="sandboxCard" style="display:none;">
+                  <p class="eyebrow">Twilio WhatsApp sandbox</p>
+                  <p class="sandbox-instructions" id="sandboxInstructions"></p>
+                  <a class="sandbox-link" id="sandboxLink" href="#" target="_blank" rel="noopener">Open WhatsApp sandbox</a>
+                </div>
+                <label>
+                  Test phone
+                  <input id="twilioTestPhone" type="text" value="+6598765432" />
+                </label>
+                <div class="button-row">
+                  <button class="secondary-btn" id="refreshTwilioBtn" type="button">Refresh diagnostics</button>
+                  <button class="secondary-btn" id="testTwilioBtn" type="button">Send test message</button>
+                </div>
+              </section>
+            </div>
+            <div class="stack-column">
+              <section class="panel info-panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">How it works</p>
+                    <h3>WhatsApp delivery notes</h3>
+                  </div>
+                </div>
+                <ul class="info-list">
+                  <li>Configure <code>TWILIO_WHATSAPP_NUMBER</code> in your environment.</li>
+                  <li>Use the sandbox code for testing before sender approval.</li>
+                  <li>Guests must send the sandbox code to your Twilio number first.</li>
+                  <li>Live templates must be approved by Meta for production.</li>
+                </ul>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- VOICE VIEW -->
+        <section class="view" id="voiceView" data-view="voice">
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Voice AI</p>
+              <h2>Phone agent &amp; voice booking test</h2>
+            </div>
+          </div>
+
+          <section class="panel" id="phoneAgentPanel">
+            <div class="panel-head slim">
+              <div>
+                <p class="eyebrow">Live phone calls (beta)</p>
+                <h3>Inbound &amp; outbound call agent</h3>
+              </div>
+              <button class="ghost-btn" id="refreshVoiceDiagBtn" type="button">Refresh status</button>
+            </div>
+            <p class="panel-note">
+              Answers and makes real phone calls using Deepgram Nova-3 (speech-to-text, keyterm-boosted for halal &amp;
+              menu vocabulary) and Aura-2 (speech), with a Groq voice agent that can transfer to a staff member.
+            </p>
+            <div class="diagnostics-box" id="voiceAgentDiagnostics">Loading phone agent status...</div>
+            <div class="content-grid">
+              <div class="stack-column">
+                <section class="sub-panel">
+                  <p class="eyebrow">Make an outbound call</p>
+                  <label>
+                    Guest phone (E.164, e.g. +65...)
+                    <input id="outboundPhone" type="text" placeholder="+6598765432" />
+                  </label>
+                  <label>
+                    Guest name
+                    <input id="outboundGuestName" type="text" placeholder="Guest name" />
+                  </label>
+                  <label>
+                    Purpose
+                    <input id="outboundPurpose" type="text" value="a reservation follow-up" />
+                  </label>
+                  <div class="button-row">
+                    <button class="primary-btn" id="startOutboundCallBtn" type="button">Call now</button>
+                  </div>
+                </section>
+              </div>
+              <div class="stack-column">
+                <section class="sub-panel">
+                  <p class="eyebrow">Before this can take real calls</p>
+                  <ul class="info-list" id="voiceSetupChecklist">
+                    <li>Loading checklist...</li>
+                  </ul>
+                </section>
+              </div>
+            </div>
+          </section>
+
+          <div class="content-grid">
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">WhatsApp voice notes</p>
+                    <h3>Simulate a voice note booking</h3>
+                  </div>
+                </div>
+                <p class="panel-note">This tests the separate WhatsApp voice-note transcription flow, not the live phone agent above.</p>
+                <div class="diagnostics-box" id="voiceGuideStatus">Guided flow idle</div>
+                <label>
+                  Phone
+                  <input id="voicePhone" type="text" value="+6598765432" />
+                </label>
+                <label>
+                  Transcript
+                  <input id="voiceTranscript" type="text" value="I want to book a table for tomorrow at 7 pm for 4 people" />
+                </label>
+                <div class="button-row wrap">
+                  <button class="secondary-btn" id="startVoiceGuideBtn" type="button">Start guided flow</button>
+                  <button class="secondary-btn" id="nextVoiceGuideBtn" type="button">Next step</button>
+                  <button class="secondary-btn" id="resetVoiceGuideBtn" type="button">Reset flow</button>
+                  <button class="secondary-btn" id="testVoiceBtn" type="button">Test voice booking</button>
+                </div>
+              </section>
+            </div>
+            <div class="stack-column">
+              <section class="panel info-panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Guided flow</p>
+                    <h3>Step-by-step demo</h3>
+                  </div>
+                </div>
+                <ol class="info-list numbered" id="voiceStepsList">
+                  <li>book a table</li>
+                  <li>Faisal</li>
+                  <li>2026-08-14</li>
+                  <li>19:00</li>
+                  <li>4</li>
+                  <li>birthday dinner, love mala spicy</li>
+                  <li>CONFIRM</li>
+                </ol>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- STAFF VIEW -->
+        <section class="view" id="staffView" data-view="staff">
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Front desk</p>
+              <h2>Staff console</h2>
+            </div>
+          </div>
+          <div class="content-grid">
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Visit actions</p>
+                    <h3>Mark guest status</h3>
+                  </div>
+                </div>
+                <label>
+                  Booking
+                  <select id="bookingSelect"></select>
+                </label>
+                <label>
+                  Bill amount (S$)
+                  <input id="billAmount" type="number" min="1" step="0.01" value="150" />
+                </label>
+                <div class="button-row">
+                  <button class="secondary-btn" id="markVisitedBtn" type="button">Mark visited</button>
+                  <button class="secondary-btn" id="markNoShowBtn" type="button">Mark no-show</button>
+                </div>
+              </section>
+            </div>
+            <div class="stack-column">
+              <section class="panel info-panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Tips</p>
+                    <h3>How to use the console</h3>
+                  </div>
+                </div>
+                <ul class="info-list">
+                  <li>Select a booking from the dropdown.</li>
+                  <li>Enter the final bill amount before marking visited.</li>
+                  <li>Marking visited triggers loyalty updates and review requests.</li>
+                  <li>No-shows are recorded for analytics and follow-up.</li>
+                </ul>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- AI ASSISTANT VIEW -->
+        <section class="view assistant-view" id="assistantView" data-view="assistant">
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Customer conversation</p>
+              <h2>AI Concierge</h2>
+            </div>
+            <div class="status-pill" id="stageLabel">Live</div>
+          </div>
+          <section class="panel chat-panel fullscreen-chat">
+            <div class="chat-toolbar">
+              <div class="assistant-note">
+                Guests can chat here or on WhatsApp. Share a phone number to start a live reservation, ask about the menu
+                and halal certification, check loyalty points, or request a review link.
+              </div>
+              <div class="quick-actions" id="chatQuickActions">
+                <button class="chip" type="button" data-prompt="I want to book a table">Book a table</button>
+                <button class="chip" type="button" data-prompt="Is your food halal certified?">Is it halal?</button>
+                <button class="chip" type="button" data-prompt="What soup bases do you have?">Soup bases</button>
+                <button class="chip" type="button" data-prompt="What are my upcoming bookings?">My bookings</button>
+                <button class="chip" type="button" data-prompt="Check my loyalty points">Loyalty points</button>
+                <button class="chip" type="button" data-prompt="Leave a review">Leave a review</button>
+              </div>
+              <div class="button-row">
+                <button class="secondary-btn" id="mayaStartBtn" type="button">Start demo</button>
+                <button class="secondary-btn" id="mayaResetBtn" type="button">Reset chat</button>
+                <button class="secondary-btn" id="whatsappConnectBtn" type="button">Connect on WhatsApp</button>
+              </div>
+            </div>
+
+            <div class="chat-window" id="chatWindow" aria-live="polite">
+              <div class="chat-placeholder" id="chatPlaceholder">Open the assistant to begin a conversation.</div>
+            </div>
+
+            <form class="maya-composer" id="mayaForm">
+              <input id="mayaMessage" type="text" placeholder="Type a customer message to the assistant..." autocomplete="off" />
+              <button class="primary-btn" id="sendMayaBtn" type="submit">Send</button>
+            </form>
+          </section>
+        </section>
+
+        <!-- SETTINGS STRIP -->
+        <section class="settings-strip">
+          <label>
+            API base URL
+            <input id="apiBaseUrl" type="text" value="" placeholder="Same origin as this page (recommended) - leave blank" />
+          </label>
+          <label>
+            Restaurant name
+            <input id="restaurantName" type="text" value="JING | Halal Hotpot & Grill Buffet" />
+          </label>
+          <button class="secondary-btn" id="refreshBtn" type="button">Refresh live data</button>
+        </section>
+      </main>
+    </div>
+
+    <script src="/assets/dashboard.js"></script>
+  </body>
+</html>

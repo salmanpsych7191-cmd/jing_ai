@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import http from 'http';
+import path from 'path';
+import fs from 'fs';
 import WebSocket, { WebSocketServer } from 'ws';
 import { ENV } from '../config/env';
 import { initDb } from '../db/schema';
@@ -35,6 +37,24 @@ async function main(): Promise<void> {
   app.use(dashboardAuthMiddleware);
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
+
+  const publicDir = path.join(__dirname, '../../public');
+  app.use('/assets', express.static(publicDir, {
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    },
+  }));
+
+  app.get('/', (_req, res) => {
+    let html = fs.readFileSync(path.join(publicDir, 'index.html'), 'utf-8');
+    const cacheBust = Date.now();
+    html = html
+      .replace('/assets/styles.css"', `/assets/styles.css?v=${cacheBust}"`)
+      .replace('/assets/dashboard.js"', `/assets/dashboard.js?v=${cacheBust}"`);
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate').type('html').send(html);
+  });
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true, restaurant: ENV.restaurantName });

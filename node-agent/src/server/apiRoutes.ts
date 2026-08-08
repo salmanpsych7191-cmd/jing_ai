@@ -242,7 +242,4 @@ Return only the response text.
     res.type('text/xml').send(twiml.toString());
   }));
 
-  app.get('/', (_req, res) => {
-    res.json({ service: 'jing-node-agent', status: 'ok' });
-  });
 }
