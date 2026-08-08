@@ -14,7 +14,7 @@ import { verifyTwilioMiddleware } from './verifyTwilio';
 import { webhookVoice, webhookVoiceOutbound } from '../telephony/voiceWebhooks';
 import { CallSession } from '../voice/orchestrator/callSession';
 import { voiceDiagnostics } from '../voice/diagnostics';
-import { twilioVoiceClient } from '../telephony/twilio';
+import { placeOutboundCall } from '../telephony/twilio';
 import { registerApiRoutes } from './apiRoutes';
 
 async function main(): Promise<void> {
@@ -75,20 +75,13 @@ async function main(): Promise<void> {
       });
       return;
     }
-    const client = twilioVoiceClient();
-    if (!client) {
-      res.status(400).json({ detail: 'Twilio client not configured.' });
-      return;
-    }
     const { phone, guest_name: guestName = 'Guest', purpose = 'a reservation follow-up' } = req.body;
-    const call = await client.calls.create({
-      to: phone,
-      from: ENV.twilioVoiceNumber,
-      url:
-        `${ENV.publicBaseUrl}/webhook/voice-outbound` +
-        `?guest_name=${encodeURIComponent(guestName)}&purpose=${encodeURIComponent(purpose)}`,
-    });
-    res.json({ status: 'calling', call_sid: call.sid, phone });
+    try {
+      const callSid = await placeOutboundCall(phone, guestName, purpose);
+      res.json({ status: 'calling', call_sid: callSid, phone });
+    } catch (err: any) {
+      res.status(400).json({ detail: err?.message ?? 'Could not place the call.' });
+    }
   });
 
   registerApiRoutes(app);

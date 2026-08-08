@@ -223,6 +223,22 @@ async function scheduleBookingMessages(booking: any): Promise<void> {
         : null,
     });
   }
+
+  // Voice follow-up call 6 hours before the booking - a phone call, not just a text,
+  // so a guest who might miss/ignore a WhatsApp message still gets a live reminder
+  // with a chance to confirm, ask a question, or reschedule before it's too late in
+  // the day to easily change plans.
+  if (ENV.twilioVoiceNumber) {
+    const reminder6hAt = new Date(bookingDt.getTime() - 6 * 3600_000);
+    if (reminder6hAt > now) {
+      await scheduleJob(`booking-voice-reminder-${booking.id}`, 'voice_reminder_call', reminder6hAt, {
+        phone: booking.phone,
+        guestName: booking.guest_name,
+        bookingId: booking.id,
+        purpose: `confirming your reservation today at ${booking.time} for ${booking.guests} guest(s)`,
+      });
+    }
+  }
 }
 
 export async function getBooking(bookingId: string): Promise<any> {

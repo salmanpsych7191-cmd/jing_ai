@@ -10,7 +10,8 @@ import { pool, query } from '../db';
 
 export type JobType =
   | 'send_whatsapp_message'
-  | 'award_points_notification';
+  | 'award_points_notification'
+  | 'voice_reminder_call';
 
 interface JobPayload {
   [key: string]: any;

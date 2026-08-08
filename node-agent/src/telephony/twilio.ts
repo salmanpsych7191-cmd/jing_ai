@@ -21,6 +21,21 @@ export function twilioVoiceClient(): ReturnType<typeof twilio> | null {
   return twilio(ENV.twilioAccountSid, ENV.twilioAuthToken);
 }
 
+// Shared by the manual "call now" API route and the scheduled booking-reminder call
+// job, so both place calls exactly the same way.
+export async function placeOutboundCall(phone: string, guestName: string, purpose: string): Promise<string> {
+  const client = twilioVoiceClient();
+  if (!client) throw new Error('Twilio client not configured.');
+  const call = await client.calls.create({
+    to: phone,
+    from: ENV.twilioVoiceNumber,
+    url:
+      `${ENV.publicBaseUrl}/webhook/voice-outbound` +
+      `?guest_name=${encodeURIComponent(guestName)}&purpose=${encodeURIComponent(purpose)}`,
+  });
+  return call.sid;
+}
+
 export async function sendWhatsAppMessage(
   phone: string,
   body: string,
