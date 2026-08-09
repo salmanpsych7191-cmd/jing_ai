@@ -17,6 +17,7 @@ import { processWhatsAppText } from '../whatsapp/concierge';
 import { deleteSession } from '../db/sessions';
 import { whatsappClient } from '../whatsapp/llmClient';
 import { verifyTwilioMiddleware } from './verifyTwilio';
+import { parseColdCallCsv, enqueueColdCallRows, coldCallQueueStatus, listColdCallQueue } from '../db/coldCallQueue';
 
 function asyncHandler(fn: (req: Request, res: Response) => Promise<void>) {
   return (req: Request, res: Response) => {
@@ -228,6 +229,30 @@ Return only the response text.
     }
     const reply = await processWhatsAppText(req.body.phone, transcript);
     res.json({ phone: req.body.phone, transcript, reply });
+  }));
+
+  app.post('/api/voice/cold-call-queue/upload', asyncHandler(async (req, res) => {
+    const csv = String(req.body.csv ?? '');
+    if (!csv.trim()) {
+      res.status(400).json({ detail: 'No CSV content received.' });
+      return;
+    }
+    const { rows, skipped, total } = parseColdCallCsv(csv);
+    if (rows.length === 0) {
+      res.status(400).json({ detail: 'No valid rows found. Expect columns company_name, contact_name (optional), phone.' });
+      return;
+    }
+    const { batchId, inserted } = await enqueueColdCallRows(rows);
+    res.json({ batch_id: batchId, inserted, skipped, total });
+  }));
+
+  app.get('/api/voice/cold-call-queue/status', asyncHandler(async (_req, res) => {
+    res.json(await coldCallQueueStatus());
+  }));
+
+  app.get('/api/voice/cold-call-queue', asyncHandler(async (req, res) => {
+    const limit = parseInt(String(req.query.limit ?? '200'), 10);
+    res.json(await listColdCallQueue(limit));
   }));
 
   // Inbound WhatsApp messages from Twilio

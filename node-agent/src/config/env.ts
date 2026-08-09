@@ -64,6 +64,13 @@ export const ENV = {
   twilioLoyaltyContentSid: process.env.TWILIO_LOYALTY_CONTENT_SID ?? '',
   useWhatsappTemplates: bool(process.env.USE_WHATSAPP_TEMPLATES, false),
 
+  // Cold-call autodialer (bulk CSV upload -> paced outbound dialing)
+  coldCallDailyCap: parseInt(process.env.COLD_CALL_DAILY_CAP ?? '100', 10),
+  coldCallIntervalMinutes: parseInt(process.env.COLD_CALL_INTERVAL_MINUTES ?? '4', 10),
+  coldCallWindowStartHour: parseInt(process.env.COLD_CALL_WINDOW_START_HOUR ?? '10', 10),
+  coldCallWindowEndHour: parseInt(process.env.COLD_CALL_WINDOW_END_HOUR ?? '18', 10),
+  coldCallWeekdaysOnly: bool(process.env.COLD_CALL_WEEKDAYS_ONLY, true),
+
   port: parseInt(process.env.PORT ?? '8000', 10),
 
   // Post-call analysis email (optional - gracefully skipped if unconfigured)

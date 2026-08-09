@@ -984,6 +984,7 @@ function switchView(viewName) {
   }
   if (viewName === 'voice') {
     refreshVoiceDiagnostics();
+    refreshColdCallQueueStatus();
   }
 }
 
@@ -1206,6 +1207,52 @@ document.getElementById('startOutboundCallBtn')?.addEventListener('click', async
 });
 
 refreshVoiceDiagnostics();
+
+async function refreshColdCallQueueStatus() {
+  const box = document.getElementById('coldCallQueueStatus');
+  if (!box) return;
+  try {
+    const response = await fetch(`${apiBase()}/api/voice/cold-call-queue/status`);
+    if (!response.ok) throw new Error('Unable to load queue status.');
+    const data = await response.json();
+    box.innerHTML = `
+      <strong>Pending:</strong> ${data.pending}<br />
+      <strong>Called today:</strong> ${data.called_today} / ${data.daily_cap}<br />
+      <strong>Currently dialing:</strong> ${data.calling}<br />
+      <strong>Failed:</strong> ${data.failed}
+    `;
+  } catch (error) {
+    box.textContent = 'Cold-call queue status unavailable.';
+  }
+}
+
+document.getElementById('refreshColdCallQueueBtn')?.addEventListener('click', refreshColdCallQueueStatus);
+
+document.getElementById('uploadColdCallCsvBtn')?.addEventListener('click', async () => {
+  const fileInput = document.getElementById('coldCallCsvFile');
+  const file = fileInput?.files?.[0];
+  if (!file) {
+    addMessage('system', 'Choose a CSV file first.');
+    return;
+  }
+  try {
+    const csv = await file.text();
+    const response = await fetch(`${apiBase()}/api/voice/cold-call-queue/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csv }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || 'Unable to upload the CSV.');
+    addMessage('assistant', `Queued ${result.inserted} lead(s) for cold calling${result.skipped ? ` (${result.skipped} row(s) skipped - missing company name or invalid phone)` : ''}. Dialing will proceed automatically within the calling window.`);
+    fileInput.value = '';
+    refreshColdCallQueueStatus();
+  } catch (error) {
+    addMessage('system', error.message);
+  }
+});
+
+refreshColdCallQueueStatus();
 
 async function startAssistantConversation() {
   try {

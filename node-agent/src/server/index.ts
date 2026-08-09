@@ -8,6 +8,7 @@ import { ENV } from '../config/env';
 import { initDb } from '../db/schema';
 import { initSchedulerTable, startScheduler } from '../scheduler';
 import { registerAllJobHandlers } from '../scheduler/handlers';
+import { startColdCallDialer } from '../scheduler/coldCallDialer';
 import { presynthesizeGreeting } from '../voice/tts/deepgramTts';
 import { dashboardAuthMiddleware } from './authMiddleware';
 import { verifyTwilioMiddleware } from './verifyTwilio';
@@ -22,6 +23,7 @@ async function main(): Promise<void> {
   await initSchedulerTable();
   registerAllJobHandlers();
   startScheduler();
+  startColdCallDialer();
   await presynthesizeGreeting();
 
   const app = express();
@@ -36,7 +38,9 @@ async function main(): Promise<void> {
   });
   app.use(dashboardAuthMiddleware);
   app.use(express.urlencoded({ extended: false }));
-  app.use(express.json());
+  // Bumped from Express's 100kb default - a 100-row cold-call CSV upload is small,
+  // but larger lead lists shouldn't get silently rejected.
+  app.use(express.json({ limit: '5mb' }));
 
   const publicDir = path.join(__dirname, '../../public');
   app.use('/assets', express.static(publicDir, {

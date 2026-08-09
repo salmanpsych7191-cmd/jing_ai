@@ -120,6 +120,19 @@ export async function initDb(): Promise<void> {
     )
   `);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS cold_call_queue (
+      id TEXT PRIMARY KEY,
+      batch_id TEXT NOT NULL,
+      company_name TEXT NOT NULL,
+      contact_name TEXT,
+      phone TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      call_sid TEXT,
+      uploaded_at TEXT NOT NULL,
+      called_at TEXT
+    )
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS corporate_leads (
       id TEXT PRIMARY KEY,
       company_name TEXT NOT NULL,
