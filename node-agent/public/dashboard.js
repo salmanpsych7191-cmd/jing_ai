@@ -978,9 +978,6 @@ function switchView(viewName) {
   document.querySelectorAll('.view').forEach((view) => view.classList.toggle('is-active', view.dataset.view === viewName));
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  if (viewName === 'menu' && !state.menuLoaded) {
-    loadMenuView();
-  }
   if (viewName === 'bookings') {
     const date = capacityDate?.value || todayIso();
     loadCapacityPanel(date);
@@ -1547,6 +1544,9 @@ if (capacityDate) {
 }
 
 switchView('dashboard');
+// Menu & Buffet is now merged into the Dashboard tab (no longer its own nav view),
+// so it loads unconditionally on init instead of being gated behind switchView('menu').
+loadMenuView().catch(() => {});
 loadTables().catch(() => {});
 refreshLiveData().catch((error) => {
   resetMayaWindow();
