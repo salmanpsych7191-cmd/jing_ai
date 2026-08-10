@@ -1157,8 +1157,8 @@ async function refreshVoiceDiagnostics() {
       <strong>Ready for real calls:</strong> ${data.ready_for_calls ? 'Yes' : 'No'}<br />
       <strong>Transfer ready:</strong> ${data.transfer_ready ? 'Yes' : 'No'}<br />
       ${trialLine}
-      <strong>Speech-to-text:</strong> Deepgram ${escapeHtml(data.stt_model)}<br />
-      <strong>Text-to-speech:</strong> Deepgram ${escapeHtml(data.tts_model)}<br />
+      <strong>Speech-to-text:</strong> ${escapeHtml(data.stt_provider || 'Groq')} ${escapeHtml(data.stt_model)}<br />
+      <strong>Text-to-speech:</strong> ${escapeHtml(data.tts_provider || 'Deepgram')} ${escapeHtml(data.tts_model)}<br />
       <strong>Voice LLM:</strong> ${escapeHtml(data.voice_llm_model)}<br />
       <strong>Twilio voice number:</strong> ${escapeHtml(data.twilio_voice_number || 'Not set')}<br />
       ${numberOwnedLine}

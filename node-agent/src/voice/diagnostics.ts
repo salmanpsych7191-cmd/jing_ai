@@ -51,6 +51,7 @@ export async function voiceDiagnostics() {
   const usingAzureTts = ENV.ttsProvider === 'azure' && Boolean(ENV.azureSpeechKey);
   return {
     deepgram_configured: Boolean(ENV.deepgramApiKey),
+    stt_provider: 'groq',
     stt_model: ENV.groqSttModel,
     tts_provider: usingAzureTts ? 'azure' : 'deepgram',
     tts_model: usingAzureTts ? ENV.azureSpeechVoice : ENV.deepgramTtsModel,
