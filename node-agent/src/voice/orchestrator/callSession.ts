@@ -40,6 +40,13 @@ export class CallSession {
   private readonly history: VoiceMessage[] = [];
   private speakStartedAt = 0;
   private wasInterruptedThisTurn = false;
+  // Timestamp of the most recent speech_start, captured independently of when that
+  // utterance finishes transcribing. onSpeechEnd's grace-window check must compare
+  // against THIS, not Date.now() at process time - a reflexive "hello" that started
+  // 200ms into the greeting but takes 2s to finish transcribing was previously being
+  // graded against the time transcription completed, missing the grace window
+  // entirely and letting a filler word trigger a full duplicate turn.
+  private lastSpeechStartedAt = 0;
   private noiseOffset = 0;
   private noiseTimer: NodeJS.Timeout | null = null;
   // True only during the dead gap between sentences within a single reply, while
@@ -69,6 +76,7 @@ export class CallSession {
   ) {
     this.vad.on('speech_start', () => {
       console.log(`[${this.callSid}] VAD: speech_start (state=${this.state})`);
+      this.lastSpeechStartedAt = Date.now();
       // Barge-in now runs through the same adaptive VAD signal as normal listening,
       // instead of a second, separately-tuned static energy threshold - two static
       // thresholds that could independently drift out of calibration was strictly
@@ -153,7 +161,10 @@ export class CallSession {
   private async onSpeechEnd(audioBuffer: Buffer): Promise<void> {
     if (this.isEnded()) return;
     const cameFromSpeakingUninterrupted = this.state === 'speaking' && !this.wasInterruptedThisTurn;
-    const withinGrace = Date.now() - this.speakStartedAt < BARGE_IN_GRACE_MS;
+    // Graded against when THIS utterance started, not now - transcription itself can
+    // take a couple seconds, which would otherwise push a genuinely-early reflexive
+    // word outside the grace window by the time it's actually checked.
+    const withinGrace = this.lastSpeechStartedAt - this.speakStartedAt < BARGE_IN_GRACE_MS;
 
     this.stopNoiseLoop();
     const transcript = await transcribeAudio(audioBuffer);
