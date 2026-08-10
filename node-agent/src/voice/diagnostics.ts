@@ -48,11 +48,13 @@ export async function voiceDiagnostics() {
     ['PUBLIC_BASE_URL', ENV.publicBaseUrl],
   ].filter(([, v]) => !v).map(([name]) => name);
 
+  const usingAzureTts = ENV.ttsProvider === 'azure' && Boolean(ENV.azureSpeechKey);
   return {
     deepgram_configured: Boolean(ENV.deepgramApiKey),
     stt_model: ENV.groqSttModel,
-    tts_model: ENV.deepgramTtsModel,
-    tts_voices_available: ENV.auraVoices,
+    tts_provider: usingAzureTts ? 'azure' : 'deepgram',
+    tts_model: usingAzureTts ? ENV.azureSpeechVoice : ENV.deepgramTtsModel,
+    tts_voices_available: usingAzureTts ? ['en-SG-WayneNeural', 'en-SG-LunaNeural'] : ENV.auraVoices,
     voice_llm_model: ENV.voiceLlmModel,
     twilio_voice_number: ENV.twilioVoiceNumber || null,
     twilio_voice_number_owned: voiceNumberOwned,
