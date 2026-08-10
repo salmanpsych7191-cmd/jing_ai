@@ -587,6 +587,10 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.content-grid.single-col {
+  grid-template-columns: 1fr;
+}
+
 .stack-column {
   display: grid;
   gap: 18px;

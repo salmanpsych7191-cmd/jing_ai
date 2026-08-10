@@ -186,35 +186,7 @@
             </article>
           </section>
 
-          <section class="content-grid">
-            <div class="stack-column">
-              <section class="panel">
-                <div class="panel-head">
-                  <div>
-                    <p class="eyebrow">Quick entry</p>
-                    <h3>Create a booking</h3>
-                  </div>
-                </div>
-                <form class="booking-grid" id="bookingForm">
-                  <input id="guestName" type="text" placeholder="Guest name" required />
-                  <input id="guestPhone" type="text" placeholder="Guest phone" required />
-                  <input id="bookingDate" type="date" required />
-                  <input id="bookingTime" type="time" required />
-                  <input id="bookingGuests" type="number" min="1" value="2" required />
-                  <select id="soupBasePreference">
-                    <option value="">Soup base preference (optional)</option>
-                    <option>Signature Mala</option>
-                    <option>Tom Yum</option>
-                    <option>Savoury Tomato</option>
-                    <option>Herbal Mushroom</option>
-                    <option>Creamy Herbal Chicken</option>
-                  </select>
-                  <input id="specialRequests" type="text" placeholder="Special requests" />
-                  <button class="primary-btn full-span" type="submit">Create live booking</button>
-                  <p class="form-hint full-span" id="bookingCapacityHint">Pick a date and time to see remaining seats.</p>
-                </form>
-              </section>
-
+          <section class="content-grid single-col">
               <section class="panel performance-panel">
                 <div class="panel-head">
                   <div>
@@ -295,46 +267,6 @@
                   </div>
                 </div>
               </section>
-            </div>
-
-            <div class="stack-column">
-              <section class="panel">
-                <div class="panel-head slim">
-                  <div>
-                    <p class="eyebrow">Recent bookings</p>
-                    <h3>Live records</h3>
-                  </div>
-                </div>
-                <div class="records-intro" id="recordsIntro">Loading the latest bookings from the live database...</div>
-                <div class="records" id="todayBookings"></div>
-              </section>
-
-              <section class="panel">
-                <div class="panel-head slim">
-                  <div>
-                    <p class="eyebrow">Shortcuts</p>
-                    <h3>Jump to a section</h3>
-                  </div>
-                </div>
-                <div class="shortcut-grid">
-                  <button class="shortcut-card" type="button" data-view="inventory">
-                    <span class="shortcut-icon" aria-hidden="true">▤</span>
-                    <strong>Inventory</strong>
-                    <span>Track grocery stock</span>
-                  </button>
-                  <button class="shortcut-card" type="button" data-view="menu">
-                    <span class="shortcut-icon" aria-hidden="true">🍲</span>
-                    <strong>Menu &amp; Buffet</strong>
-                    <span>Soup bases &amp; pricing</span>
-                  </button>
-                  <button class="shortcut-card" type="button" data-view="bookings">
-                    <span class="shortcut-icon" aria-hidden="true">◌</span>
-                    <strong>Bookings</strong>
-                    <span>Manage reservations</span>
-                  </button>
-                </div>
-              </section>
-            </div>
           </section>
         </section>
 
