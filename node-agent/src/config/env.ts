@@ -92,4 +92,4 @@ export const ENV = {
 };
 
 export const inboundGreetingText =
-  `Hi there, thanks so much for calling ${ENV.restaurantName}! What can I help you with today?`;
+  `Hi there, thanks so much for calling ${ENV.restaurantName}! This is Mel — what can I help you with today?`;

@@ -49,7 +49,7 @@ export function webhookVoiceOutbound(req: Request, res: Response): void {
     stream.parameter({ name: 'purpose', value: purpose });
     stream.parameter({
       name: 'greeting',
-      value: `Hi ${guestName}, this is ${ENV.restaurantName} calling about ${purpose}. Is now a good time to talk?`,
+      value: `Hi ${guestName}, this is Mel from ${ENV.restaurantName} calling about ${purpose}. Is now a good time to talk?`,
     });
   } else {
     const companyName = (req.query.company_name as string) || '';

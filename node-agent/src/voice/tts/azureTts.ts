@@ -31,16 +31,43 @@ function escapeSsml(text: string): string {
     .replace(/'/g, '&apos;');
 }
 
+// A static pitch/rate boost applied identically to every single utterance sounded
+// flat and robotic in testing - real speech varies sentence to sentence. Jittering
+// within a small range per utterance (still centered on the configured base) breaks
+// that uniformity without making individual sentences sound inconsistent.
+const PITCH_JITTER_PERCENT = 4;
+const RATE_JITTER_PERCENT = 4;
+
+function jitteredProsodyValue(base: string, jitterRange: number): string {
+  const match = base.match(/^([+-]?\d+(?:\.\d+)?)%$/);
+  const baseVal = match ? parseFloat(match[1]) : 0;
+  const jitter = (Math.random() * 2 - 1) * jitterRange;
+  const value = Math.round(baseVal + jitter);
+  return `${value >= 0 ? '+' : ''}${value}%`;
+}
+
+// Short pauses at natural clause boundaries - a human doesn't deliver a whole sentence
+// as one unbroken stream, they pause briefly at commas/dashes/trailing thoughts. Applied
+// to already-SSML-escaped text, so the inserted tags are safe from further escaping.
+function withNaturalPauses(escapedText: string): string {
+  return escapedText
+    .replace(/,\s+/g, ', <break time="160ms"/> ')
+    .replace(/\s+—\s+/g, ' <break time="220ms"/> ')
+    .replace(/\.\.\.\s*/g, '... <break time="250ms"/> ');
+}
+
 export async function synthesizeSpeech(text: string): Promise<Buffer> {
   const cleanText = normalizeForTts(text);
   if (!cleanText) return Buffer.alloc(0);
 
   const token = await getAccessToken();
   const gender = ENV.azureSpeechVoice.toLowerCase().includes('wayne') ? 'Male' : 'Female';
+  const pitch = jitteredProsodyValue(ENV.azureSpeechPitch, PITCH_JITTER_PERCENT);
+  const rate = jitteredProsodyValue(ENV.azureSpeechRate, RATE_JITTER_PERCENT);
   const ssml =
     `<speak version="1.0" xml:lang="en-SG">` +
     `<voice xml:lang="en-SG" xml:gender="${gender}" name="${ENV.azureSpeechVoice}">` +
-    `<prosody pitch="${ENV.azureSpeechPitch}" rate="${ENV.azureSpeechRate}">${escapeSsml(cleanText)}</prosody>` +
+    `<prosody pitch="${pitch}" rate="${rate}">${withNaturalPauses(escapeSsml(cleanText))}</prosody>` +
     `</voice>` +
     `</speak>`;
 
