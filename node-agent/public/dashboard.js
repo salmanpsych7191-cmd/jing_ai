@@ -70,7 +70,6 @@ const state = {
   assistantOpen: false,
   assistantPhone: '',
   currentView: 'dashboard',
-  menuLoaded: false,
   tables: [],
   editingTableId: null,
 };
@@ -524,87 +523,6 @@ async function loadCapacityPanelSilent(date) {
     return response.json();
   } catch {
     return null;
-  }
-}
-
-function renderMenu(menu) {
-  const tagline = document.getElementById('menuTagline');
-  const founder = document.getElementById('menuFounderStory');
-  const location = document.getElementById('menuLocationList');
-  const pricingCards = document.getElementById('pricingCards');
-  const soupBaseList = document.getElementById('soupBaseList');
-  const proteinList = document.getElementById('proteinList');
-  const addonList = document.getElementById('addonList');
-
-  if (tagline) tagline.textContent = menu.profile.tagline;
-  if (founder) founder.textContent = menu.profile.founder_story;
-  if (location) {
-    location.innerHTML = [
-      `📍 ${menu.profile.address}`,
-      `🕐 ${menu.profile.hours_display}`,
-      `☪ ${menu.profile.halal_statement}`,
-      `🍲 ${menu.profile.dining_format}`,
-    ].map((line) => `<li>${escapeHtml(line)}</li>`).join('');
-  }
-
-  if (pricingCards) {
-    const p = menu.pricing;
-    pricingCards.innerHTML = `
-      <div class="stack-column"><section class="panel campaign-card">
-        <div class="panel-head slim"><div><p class="eyebrow">Weekday lunch</p><h3>S$${p.weekday_lunch.toFixed(2)}++</h3></div></div>
-        <p class="panel-note">Mon–Thu, ${menu.sessions.lunch.start}–${menu.sessions.lunch.last_seating} last seating.</p>
-      </section></div>
-      <div class="stack-column"><section class="panel campaign-card">
-        <div class="panel-head slim"><div><p class="eyebrow">Weekday dinner</p><h3>S$${p.weekday_dinner.toFixed(2)}++</h3></div></div>
-        <p class="panel-note">Mon–Thu, ${menu.sessions.dinner.start}–${menu.sessions.dinner.last_seating} last seating.</p>
-      </section></div>
-      <div class="stack-column"><section class="panel campaign-card">
-        <div class="panel-head slim"><div><p class="eyebrow">Fri–Sun, all day</p><h3>S$${p.weekend_all_day.toFixed(2)}++</h3></div></div>
-        <p class="panel-note">Same rate for lunch or dinner. ${menu.profile.buffet_duration_minutes}-minute seating.</p>
-      </section></div>
-    `;
-  }
-
-  if (soupBaseList) {
-    soupBaseList.innerHTML = menu.soup_bases.map((s) => `
-      <article class="record-item">
-        <div class="record-main"><strong>${escapeHtml(s.name)}</strong>${s.spice_customizable ? '<span class="badge orange">spice customizable</span>' : ''}</div>
-        <div class="record-note">${escapeHtml(s.description)}</div>
-      </article>
-    `).join('');
-  }
-
-  if (proteinList) {
-    proteinList.innerHTML = menu.proteins.map((p) => `
-      <article class="record-item">
-        <div class="record-main"><strong>${escapeHtml(p.name)}</strong><span class="badge muted">${escapeHtml(p.category)}</span></div>
-      </article>
-    `).join('');
-  }
-
-  if (addonList) {
-    addonList.innerHTML = menu.a_la_carte_add_ons.map((a) => `
-      <article class="record-item">
-        <div class="record-main"><strong>${escapeHtml(a.name)}</strong><span>S$${a.price.toFixed(2)}</span></div>
-      </article>
-    `).join('') + `
-      <article class="record-item">
-        <div class="record-main"><strong>${escapeHtml(menu.pricing.premium_platter.name)}</strong><span>S$${menu.pricing.premium_platter.price.toFixed(2)}</span></div>
-        <div class="record-note">${escapeHtml(menu.pricing.premium_platter.description)}</div>
-      </article>
-    `;
-  }
-}
-
-async function loadMenuView() {
-  try {
-    const response = await fetch(`${apiBase()}/api/menu`);
-    if (!response.ok) throw new Error('menu unavailable');
-    const menu = await response.json();
-    renderMenu(menu);
-    state.menuLoaded = true;
-  } catch (error) {
-    addMessage('system', 'Unable to load the menu right now.');
   }
 }
 
@@ -1544,9 +1462,6 @@ if (capacityDate) {
 }
 
 switchView('dashboard');
-// Menu & Buffet is now merged into the Dashboard tab (no longer its own nav view),
-// so it loads unconditionally on init instead of being gated behind switchView('menu').
-loadMenuView().catch(() => {});
 loadTables().catch(() => {});
 refreshLiveData().catch((error) => {
   resetMayaWindow();
