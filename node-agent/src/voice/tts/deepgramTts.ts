@@ -44,7 +44,10 @@ export function normalizeForTts(raw: string): string {
     .trim();
 }
 
-export async function synthesizeSpeech(text: string): Promise<Buffer> {
+// The `options` param exists only so this matches azureTts's signature (the two
+// providers are interchangeable via tts/index.ts) - this REST endpoint takes plain
+// text with no SSML/prosody control, so there's no "energetic" mode to apply here.
+export async function synthesizeSpeech(text: string, _options?: { energetic?: boolean }): Promise<Buffer> {
   const cleanText = normalizeForTts(text);
   if (!cleanText) return Buffer.alloc(0);
 

@@ -56,9 +56,12 @@ export function webhookVoiceOutbound(req: Request, res: Response): void {
     const contactName = (req.query.contact_name as string) || '';
     stream.parameter({ name: 'companyName', value: companyName });
     if (contactName) stream.parameter({ name: 'contactName', value: contactName });
+    // Cold-call convention: open with real energy, not a flat/formal tone - this is
+    // the caller's one shot at a first impression, and it's also given the strongest
+    // TTS energy boost (see callSession.sendGreeting's { energetic: true }).
     const greeting = contactName
-      ? `Good day, is this ${contactName}?`
-      : 'Good day! May I speak with whoever handles staff events, team lunches, or company celebrations there?';
+      ? `Hi there! Is this ${contactName}?`
+      : "Hi there! Could I speak with whoever handles staff events, team lunches, or company celebrations there?";
     stream.parameter({ name: 'greeting', value: greeting });
   }
   res.type('text/xml').send(response.toString());

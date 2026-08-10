@@ -27,7 +27,11 @@ function isFillerTranscript(text: string): boolean {
   return FILLER_TRANSCRIPTS.has(text.trim().toLowerCase().replace(/[?.!]+$/g, '').trim());
 }
 
-const NOISE_LOOP = ENV.voiceAmbientNoiseEnabled ? generateRestaurantNoise(12000, 0.05) : Buffer.alloc(0);
+// Generating this pure noise loop is always safe regardless of VOICE_AMBIENT_NOISE -
+// that flag only gates mixNoise() (mixing noise into actual outgoing speech bytes,
+// where the earlier corruption bug lived). Pure, unmixed noise has no such risk, and
+// is now used to fill dead-air gaps (see gapFilling below) as well as the listening loop.
+const NOISE_LOOP = generateRestaurantNoise(12000, 0.05);
 
 export class CallSession {
   private state: CallState = 'greeting';
@@ -38,6 +42,11 @@ export class CallSession {
   private wasInterruptedThisTurn = false;
   private noiseOffset = 0;
   private noiseTimer: NodeJS.Timeout | null = null;
+  // True only during the dead gap between sentences within a single reply, while
+  // waiting on LLM/TTS for the next one - without this the line goes to true digital
+  // silence for the duration of that wait, which real callers reported sounding like
+  // the call had disconnected.
+  private gapFilling = false;
 
   // Mark-event based playback-completion tracking - waits for Twilio's own ack that
   // audio actually finished playing (not just that we finished sending bytes), since
@@ -121,9 +130,10 @@ export class CallSession {
   // ── Background noise loop (plays while listening, so the line never sounds dead-silent) ──
 
   private startNoiseLoop(): void {
-    if (this.noiseTimer || !ENV.voiceAmbientNoiseEnabled) return;
+    if (this.noiseTimer) return;
     this.noiseTimer = setInterval(() => {
-      if (this.state !== 'listening' || !this.streamSid || this.ws.readyState !== WebSocket.OPEN) return;
+      const shouldFill = this.state === 'listening' || this.gapFilling;
+      if (!shouldFill || !this.streamSid || this.ws.readyState !== WebSocket.OPEN) return;
       const start = this.noiseOffset % (NOISE_LOOP.length - CHUNK_BYTES);
       const chunk = NOISE_LOOP.subarray(start, start + CHUNK_BYTES);
       this.noiseOffset = (this.noiseOffset + CHUNK_BYTES) % NOISE_LOOP.length;
@@ -251,13 +261,20 @@ export class CallSession {
       if (this.wasInterruptedThisTurn || this.isEnded()) break;
       if (audio.length > 0) await this.streamAudioWithNoiseAndWaitMark(audio);
 
+      // Fill the wait for the next sentence's text/TTS with soft ambient noise instead
+      // of true silence - this gap is where "sounds disconnected" came from.
+      this.gapFilling = true;
+      this.startNoiseLoop();
       const nextTextPromise = nextSentence();
       const [nextText] = await Promise.all([nextTextPromise]);
       const nextAudioPromise = nextText ? synthesizeSpeech(nextText) : null;
+      const nextAudio = nextAudioPromise ? await nextAudioPromise : null;
+      this.gapFilling = false;
 
       currentText = nextText;
-      currentAudioPromise = nextAudioPromise;
+      currentAudioPromise = nextAudio !== null ? Promise.resolve(nextAudio) : null;
     }
+    this.gapFilling = false;
 
     const result = await turnPromise;
     if (result.shouldTransfer && ENV.staffTransferNumber) {
@@ -353,7 +370,7 @@ export class CallSession {
       // Only the fixed inbound greeting can be pre-cached - outbound greetings are
       // personalized per call (guest name + purpose) so they're always synthesized live.
       const cached = this.greetingText === inboundGreetingText ? getCachedGreeting() : null;
-      const audio = cached ?? await synthesizeSpeech(this.greetingText);
+      const audio = cached ?? await synthesizeSpeech(this.greetingText, { energetic: true });
       console.log(`[${this.callSid}] Greeting audio ready: ${audio.length} bytes (cached=${Boolean(cached)})`);
       if (audio.length > 0) await this.streamAudioWithNoiseAndWaitMark(audio);
       console.log(`[${this.callSid}] Greeting playback wait finished`);

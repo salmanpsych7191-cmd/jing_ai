@@ -38,6 +38,17 @@ function escapeSsml(text: string): string {
 const PITCH_JITTER_PERCENT = 4;
 const RATE_JITTER_PERCENT = 4;
 
+// A noticeably stronger boost for opening greetings specifically. Every utterance
+// getting the same conversational-level boost meant the greeting had no more energy
+// than a mid-call answer - real cold-call/front-desk convention is to open with
+// visibly more energy than the rest of the conversation.
+const ENERGETIC_PITCH = '+22%';
+const ENERGETIC_RATE = '+14%';
+
+export interface SynthesizeOptions {
+  energetic?: boolean;
+}
+
 function jitteredProsodyValue(base: string, jitterRange: number): string {
   const match = base.match(/^([+-]?\d+(?:\.\d+)?)%$/);
   const baseVal = match ? parseFloat(match[1]) : 0;
@@ -56,14 +67,16 @@ function withNaturalPauses(escapedText: string): string {
     .replace(/\.\.\.\s*/g, '... <break time="250ms"/> ');
 }
 
-export async function synthesizeSpeech(text: string): Promise<Buffer> {
+export async function synthesizeSpeech(text: string, options: SynthesizeOptions = {}): Promise<Buffer> {
   const cleanText = normalizeForTts(text);
   if (!cleanText) return Buffer.alloc(0);
 
   const token = await getAccessToken();
   const gender = ENV.azureSpeechVoice.toLowerCase().includes('wayne') ? 'Male' : 'Female';
-  const pitch = jitteredProsodyValue(ENV.azureSpeechPitch, PITCH_JITTER_PERCENT);
-  const rate = jitteredProsodyValue(ENV.azureSpeechRate, RATE_JITTER_PERCENT);
+  const pitchBase = options.energetic ? ENERGETIC_PITCH : ENV.azureSpeechPitch;
+  const rateBase = options.energetic ? ENERGETIC_RATE : ENV.azureSpeechRate;
+  const pitch = jitteredProsodyValue(pitchBase, PITCH_JITTER_PERCENT);
+  const rate = jitteredProsodyValue(rateBase, RATE_JITTER_PERCENT);
   const ssml =
     `<speak version="1.0" xml:lang="en-SG">` +
     `<voice xml:lang="en-SG" xml:gender="${gender}" name="${ENV.azureSpeechVoice}">` +
@@ -95,7 +108,7 @@ let cachedGreetingAudio: Buffer | null = null;
 export async function presynthesizeGreeting(): Promise<void> {
   if (!ENV.azureSpeechKey) return;
   try {
-    cachedGreetingAudio = await synthesizeSpeech(inboundGreetingText);
+    cachedGreetingAudio = await synthesizeSpeech(inboundGreetingText, { energetic: true });
     console.log(`[TTS] Pre-synthesized inbound greeting via Azure Speech (${cachedGreetingAudio.length} bytes)`);
   } catch (err) {
     console.warn('[TTS] Could not pre-synthesize greeting at startup, will synthesize live:', err);
