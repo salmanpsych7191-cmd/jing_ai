@@ -28,3 +28,7 @@ node_modules/
 # Local Claude Code session/settings
 .claude/
 
+# Local archive of legacy/unused/reference files not needed by any deployed
+# service - kept on disk for reference, deliberately not pushed to the remote.
+Extra/
+
