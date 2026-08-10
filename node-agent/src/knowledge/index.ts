@@ -75,6 +75,159 @@ export const ROTATING_SIDES_NOTE =
   'Rotating sides such as dumplings and mala noodles are available for dinner Mon–Thu, ' +
   'and all day Friday–Sunday.';
 
+// Added from voice_agent_inbound/knowledge_base.txt - facts likely to come up often
+// enough to justify the extra tokens on every turn (corporate buyout, deposits,
+// payment, accurate seat count). Detailed FAQ/menu items from the same source live
+// in FAQ_TOPICS below instead, retrieved on demand via the answer_faq tool, since
+// dumping the whole doc into voicePromptBlock would resend it every single turn of
+// a live call and worsen the LLM rate-limiting already seen in testing.
+export const SEATING_INFO = {
+  nominalSeats: 98,
+  effectiveSeats: 94,
+  note: 'Table 3 (4-pax) is temporarily out of service, expected fixed within the coming month.',
+  lastSeating: 'Lunch 5:00 PM, Dinner & Weekend 7:30 PM, last entry 8:30 PM.',
+};
+
+export const CORPORATE_BUYOUT = {
+  weekdayLunch2hr: 4500,
+  weekdayDinner2hr: 5500,
+  weekendEvePh2hr: 6500,
+  extraHourLunch: 1500,
+  extraHourDinnerWeekend: 1800,
+  maxBuyoutPax: 96,
+  foodAddOnPrice: 2500,
+  foodAddOnDescription: 'Seafood Platter (WA Rock Lobster & Snow Crab Legs) or Meat Platter (Lamb Rack & Australian Wagyu MB4/5)',
+  drinksUpgradePrice: 500,
+  drinksUpgradeDescription: 'Free-flow Milaf Cola plus Saicho Sparkling Tea, or free-flow Milaf Cola plus NON non-alcoholic bottles',
+};
+
+export const BOOKING_REQUIREMENTS = {
+  depositPolicy: 'Groups of 12 pax and above require a 50% deposit to confirm the reservation.',
+  proofOfPayment: 'A screenshot or transaction confirmation should be sent to bookings@by-jing.com upon payment.',
+  softBooking: 'A soft, unconfirmed hold is available on request while a client finalises arrangements.',
+};
+
+export const PAYMENT_INFO = {
+  payNowUen: '202324872H',
+  creditCardLink: 'https://securecheckout.hit-pay.com/payment-request/@jinshangyipin-hotpot-pte-ltd',
+  govProcurement: 'Registered on Vendors@Gov / GeBIZ - government agencies may raise a PO.',
+  bookingsEmail: 'bookings@by-jing.com',
+};
+
+// Long-tail Q&A + detailed menus from voice_agent_inbound/knowledge_base.txt, looked
+// up on demand via the answer_faq voice tool rather than always loaded into the prompt.
+export const FAQ_TOPICS: Array<{ keywords: string[]; answer: string }> = [
+  {
+    keywords: ['allerg'],
+    answer:
+      'We take allergens seriously and do our best to accommodate all requirements where possible, but we ' +
+      'cannot guarantee a completely allergy-free meal, including gluten, since we do not have a separate kitchen.',
+  },
+  {
+    keywords: ['dietary', 'special diet'],
+    answer:
+      'We can accommodate most dietary requirements - just add a note to the booking and let the team know ' +
+      'when ordering. If they are concerned, offer to transfer them to a colleague.',
+  },
+  {
+    keywords: ['vegan'],
+    answer: 'We have vegan options on the menu - add a note to the booking and let the team know when ordering.',
+  },
+  {
+    keywords: ['vegetarian'],
+    answer: 'We have vegetarian options on the menu.',
+  },
+  {
+    keywords: ['gluten'],
+    answer:
+      'We offer many gluten-free options on the menu - please add a note to the booking and let the team know ' +
+      'when ordering.',
+  },
+  {
+    keywords: ['halal'],
+    answer: 'Yes, JING is an exclusively halal venue, fully halal-certified.',
+  },
+  {
+    keywords: ['parking', 'park'],
+    answer: 'Parking is available in the KINEX Mall car park.',
+  },
+  {
+    keywords: ['byo', 'alcohol', 'wine', 'licensed'],
+    answer: 'JING is a halal establishment, so alcohol is not allowed and BYO is not permitted.',
+  },
+  {
+    keywords: ['cake', 'birthday', 'celebrat', 'decoration'],
+    answer:
+      'Celebrations are welcome - guests may bring a cake as long as it is halal-certified, and we provide a ' +
+      'small complimentary cake for birthdays. Decorations are welcome but kept to a minimum - no confetti or ' +
+      'table scatters.',
+  },
+  {
+    keywords: ['pet', 'dog'],
+    answer:
+      "Unfortunately there isn't space for pets, but service dogs are allowed anywhere in the venue.",
+  },
+  {
+    keywords: ['seating request', 'particular section', 'specific table', 'sit near'],
+    answer: "Add a note to the booking and we'll do our best to honour a seating request, though it can't be guaranteed.",
+  },
+  {
+    keywords: ['public holiday', 'holiday hours', 'ramadan'],
+    answer:
+      'JING is open on all public holidays except the first day of Ramadan - standard rates apply. ' +
+      'Suggest checking social pages or Google for specific details if unsure.',
+  },
+  {
+    keywords: ['child', 'kid', 'baby', 'high chair', 'babychair'],
+    answer: 'JING is child-friendly and offers baby chairs.',
+  },
+  {
+    keywords: ['wheelchair', 'disabled', 'accessib'],
+    answer: 'Yes, the venue is wheelchair accessible.',
+  },
+  {
+    keywords: ['buyout', 'corporate event', 'full restaurant', 'exclusive use', 'private event'],
+    answer:
+      `Full-restaurant buyout (2 hours): weekday lunch S$${CORPORATE_BUYOUT.weekdayLunch2hr}++, weekday dinner ` +
+      `S$${CORPORATE_BUYOUT.weekdayDinner2hr}++, weekend/eve-PH S$${CORPORATE_BUYOUT.weekendEvePh2hr}++. Extra hour: ` +
+      `S$${CORPORATE_BUYOUT.extraHourLunch}++ (lunch) or S$${CORPORATE_BUYOUT.extraHourDinnerWeekend}++ (dinner/weekend). ` +
+      `Max buyout capacity ${CORPORATE_BUYOUT.maxBuyoutPax} pax. Premium food add-on S$${CORPORATE_BUYOUT.foodAddOnPrice}++ ` +
+      `(${CORPORATE_BUYOUT.foodAddOnDescription}); premium drinks upgrade S$${CORPORATE_BUYOUT.drinksUpgradePrice}++ ` +
+      `(${CORPORATE_BUYOUT.drinksUpgradeDescription}). For groups of 12+, a 50% deposit is required to confirm. ` +
+      'This should be passed to staff to finalise - offer to transfer or take their details.',
+  },
+  {
+    keywords: ['drinks menu', 'drink list', 'what drinks', 'beverages', 'cocktail', 'mocktail'],
+    answer:
+      'Drinks are a la carte add-ons: housemade mocktails (Velvet Dusk, Amber Bloom, Spice Drift), Salaam Cola ' +
+      '(Original, No Sugar, or Yemonade), 750ml bottles (Toasted Cinnamon & Yuzu, Lemon Marmalade & Hibiscus, ' +
+      'Oaked Blackberry & Plum), Saicho sparkling tea (Houjicha, Jasmine, Darjeeling), and San Pellegrino or ' +
+      'Acqua Panna water. Offer to send the full menu via WhatsApp using send_link rather than reading it all out.',
+  },
+  {
+    keywords: ['food menu', 'what food', 'menu items', 'what meat', 'proteins available'],
+    answer:
+      'Beyond the standard soup bases and proteins, the buffet includes marinated house specialties (Goji Berry ' +
+      'Chicken, Sarawak Black Pepper Chicken and Beef, Chicken and Mutton Satay), curated selections (Lemongrass ' +
+      'Chicken, Mala Spiced Chicken/Beef, Cumin Spiced Mutton), and shabu-shabu classics (US Beef Short Plate, NZ ' +
+      'Beef Striploin, Thin Sliced Chicken). Premium a la carte meats (Lamb Rack, Australian Angus/Wagyu, Rock ' +
+      'Lobster, Snow Crab, JING platters) are available at extra cost. Offer to send the full menu via WhatsApp ' +
+      'using send_link rather than reading it all out.',
+  },
+  {
+    keywords: ['payment method', 'how to pay', 'paynow', 'credit card', 'gebiz', 'vendors@gov', 'purchase order'],
+    answer:
+      `PayNow UEN ${PAYMENT_INFO.payNowUen}, or credit card via ${PAYMENT_INFO.creditCardLink}. ` +
+      `${PAYMENT_INFO.govProcurement} Proof of payment should be sent to ${PAYMENT_INFO.bookingsEmail}.`,
+  },
+];
+
+export function lookupFaq(topic: string): string | null {
+  const lowered = (topic ?? '').toLowerCase();
+  const match = FAQ_TOPICS.find((t) => t.keywords.some((k) => lowered.includes(k)));
+  return match?.answer ?? null;
+}
+
 export const FAQ_SNIPPETS = {
   halal: RESTAURANT_PROFILE.halalStatement,
   sauceStation: 'A full DIY sauce station is included in the buffet so every guest can build their own dip.',
@@ -163,6 +316,10 @@ DIY sauce station included; stock top-ups free.
 Payment: ${FAQ_SNIPPETS.payment}
 Parking: ${FAQ_SNIPPETS.parking}
 ${FAQ_SNIPPETS.groupBookings}
+Seating: ${SEATING_INFO.effectiveSeats} effective seats. Last seating: ${SEATING_INFO.lastSeating}
+Groups of 12+ pax: ${BOOKING_REQUIREMENTS.depositPolicy} Bookings email: ${PAYMENT_INFO.bookingsEmail}
+Full-restaurant corporate buyout available (from S$${CORPORATE_BUYOUT.weekdayLunch2hr}++/2hrs) - use answer_faq for exact pricing/add-ons if asked.
+For allergies, dietary needs, drinks/food menu detail, pets, celebrations, holiday hours, or other questions not covered above, call answer_faq instead of guessing.
 Never read a URL aloud — use send_link (review/menu/instagram/facebook/opentable) instead.
 `.trim();
 }

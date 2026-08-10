@@ -7,7 +7,7 @@ import { getLoyalty } from '../db/loyalty';
 import { reviewLinkUrl, recordCampaign } from '../db/campaigns';
 import { createCorporateLead, CorporateLeadStatus } from '../db/corporateLeads';
 import { sendWhatsAppMessage } from '../telephony/twilio';
-import { socialLinks } from '../knowledge';
+import { socialLinks, lookupFaq } from '../knowledge';
 
 export async function executeToolCall(name: string, args: any, phone: string): Promise<any> {
   if (name === 'check_availability') {
@@ -80,6 +80,13 @@ export async function executeToolCall(name: string, args: any, phone: string): P
 
   if (name === 'log_corporate_enquiry') {
     return logCorporateEnquiry(phone, args);
+  }
+
+  if (name === 'answer_faq') {
+    const answer = lookupFaq(args.topic ?? '');
+    return answer
+      ? { found: true, answer }
+      : { found: false, note: "No matching FAQ entry - answer from general knowledge if confident, or offer to have staff follow up." };
   }
 
   return { error: `Unknown tool '${name}'` };

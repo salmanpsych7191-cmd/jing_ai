@@ -132,9 +132,32 @@ export const VOICE_TRANSFER_TOOL = {
   },
 };
 
+// Voice-only knowledge lookup (inbound calls) - keeps the always-loaded system prompt
+// compact by fetching long-tail FAQ/menu detail from voice_agent_inbound/knowledge_base.txt
+// only when a caller actually asks about it, instead of resending it every turn.
+export const VOICE_FAQ_TOOL = {
+  type: 'function',
+  function: {
+    name: 'answer_faq',
+    description:
+      "Look up an answer for a caller's question about allergies, dietary needs (vegan/vegetarian/gluten-free), " +
+      'parking, BYO/alcohol policy, birthdays/cakes/decorations, pets, seating requests, public holiday hours, ' +
+      'child-friendliness, wheelchair access, corporate/full-restaurant buyout pricing, the drinks menu, or the ' +
+      "detailed food menu. Call this instead of guessing when asked about a topic not already in your core facts.",
+    parameters: {
+      type: 'object',
+      properties: {
+        topic: { type: 'string', description: "Short topic, e.g. 'allergies', 'vegan', 'parking', 'birthday cake', 'corporate buyout', 'drinks menu', 'food menu'." },
+      },
+      required: ['topic'],
+    },
+  },
+};
+
 export const VOICE_TOOLS = [
   ...AGENT_TOOLS.filter((t) => t.function.name !== 'notify_staff'),
   VOICE_TRANSFER_TOOL,
+  VOICE_FAQ_TOOL,
 ];
 
 // Used only on outbound B2B cold calls (JING Cold Call Script) - a wholly different
