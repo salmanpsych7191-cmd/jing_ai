@@ -851,6 +851,25 @@
                   </div>
                 </form>
               </section>
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Bulk import</p>
+                    <h3>Upload Excel or CSV</h3>
+                  </div>
+                </div>
+                <p class="panel-note">
+                  Columns: <code>name</code> (required), <code>category</code>, <code>quantity</code>, <code>unit</code>,
+                  <code>low_stock_threshold</code>, <code>notes</code>. Accepts .xlsx, .xls, or .csv.
+                </p>
+                <label>
+                  Spreadsheet file
+                  <input id="inventoryFile" type="file" accept=".xlsx,.xls,.csv" />
+                </label>
+                <div class="button-row">
+                  <button class="primary-btn" id="uploadInventoryFileBtn" type="button">Upload &amp; import</button>
+                </div>
+              </section>
             </div>
             <div class="stack-column">
               <section class="panel">

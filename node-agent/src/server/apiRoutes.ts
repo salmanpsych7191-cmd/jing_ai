@@ -18,7 +18,10 @@ import { deleteSession } from '../db/sessions';
 import { whatsappClient } from '../whatsapp/llmClient';
 import { verifyTwilioMiddleware } from './verifyTwilio';
 import { parseColdCallCsv, enqueueColdCallRows, coldCallQueueStatus, listColdCallQueue } from '../db/coldCallQueue';
-import { createInventoryItem, listInventoryItems, updateInventoryQuantity, deleteInventoryItem } from '../db/inventory';
+import {
+  createInventoryItem, listInventoryItems, updateInventoryQuantity, deleteInventoryItem,
+  parseInventoryFile, bulkCreateInventoryItems,
+} from '../db/inventory';
 
 function asyncHandler(fn: (req: Request, res: Response) => Promise<void>) {
   return (req: Request, res: Response) => {
@@ -288,6 +291,36 @@ Return only the response text.
 
   app.post('/api/inventory/:id/delete', asyncHandler(async (req, res) => {
     res.json(await deleteInventoryItem(req.params.id));
+  }));
+
+  app.post('/api/inventory/upload', asyncHandler(async (req, res) => {
+    const { filename, base64 } = req.body;
+    if (!filename || !base64) {
+      res.status(400).json({ detail: 'filename and base64 file content are required.' });
+      return;
+    }
+    let buffer: Buffer;
+    try {
+      buffer = Buffer.from(base64, 'base64');
+    } catch {
+      res.status(400).json({ detail: 'Could not decode the uploaded file.' });
+      return;
+    }
+    let parsed;
+    try {
+      parsed = await parseInventoryFile(buffer, filename);
+    } catch (err: any) {
+      res.status(400).json({ detail: `Could not read the file: ${err?.message ?? err}` });
+      return;
+    }
+    if (parsed.rows.length === 0) {
+      res.status(400).json({
+        detail: 'No valid rows found. Expect columns name, category, quantity, unit, low_stock_threshold, notes (name is required).',
+      });
+      return;
+    }
+    const inserted = await bulkCreateInventoryItems(parsed.rows);
+    res.json({ inserted, skipped: parsed.skipped, total: parsed.total });
   }));
 
   // Inbound WhatsApp messages from Twilio

@@ -58,6 +58,8 @@ const waitlistRecords = document.getElementById('waitlistRecords');
 const inventoryForm = document.getElementById('inventoryForm');
 const inventoryRecords = document.getElementById('inventoryRecords');
 const refreshInventoryBtn = document.getElementById('refreshInventoryBtn');
+const inventoryFile = document.getElementById('inventoryFile');
+const uploadInventoryFileBtn = document.getElementById('uploadInventoryFileBtn');
 
 const state = {
   bookings: [],
@@ -1358,6 +1360,38 @@ inventoryForm?.addEventListener('submit', async (event) => {
 });
 
 refreshInventoryBtn?.addEventListener('click', loadInventory);
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+    reader.onerror = () => reject(new Error('Could not read the file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+uploadInventoryFileBtn?.addEventListener('click', async () => {
+  const file = inventoryFile?.files?.[0];
+  if (!file) {
+    addMessage('system', 'Choose an Excel or CSV file first.');
+    return;
+  }
+  try {
+    const base64 = await fileToBase64(file);
+    const response = await fetch(`${apiBase()}/api/inventory/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, base64 }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || 'Unable to import the file.');
+    addMessage('assistant', `Imported ${result.inserted} inventory item(s)${result.skipped ? ` (${result.skipped} row(s) skipped - missing a name)` : ''}.`);
+    inventoryFile.value = '';
+    await loadInventory();
+  } catch (error) {
+    addMessage('system', error.message);
+  }
+});
 
 async function startAssistantConversation() {
   try {
