@@ -18,6 +18,7 @@ import { deleteSession } from '../db/sessions';
 import { whatsappClient } from '../whatsapp/llmClient';
 import { verifyTwilioMiddleware } from './verifyTwilio';
 import { parseColdCallCsv, enqueueColdCallRows, coldCallQueueStatus, listColdCallQueue } from '../db/coldCallQueue';
+import { createInventoryItem, listInventoryItems, updateInventoryQuantity, deleteInventoryItem } from '../db/inventory';
 
 function asyncHandler(fn: (req: Request, res: Response) => Promise<void>) {
   return (req: Request, res: Response) => {
@@ -253,6 +254,40 @@ Return only the response text.
   app.get('/api/voice/cold-call-queue', asyncHandler(async (req, res) => {
     const limit = parseInt(String(req.query.limit ?? '200'), 10);
     res.json(await listColdCallQueue(limit));
+  }));
+
+  app.get('/api/inventory', asyncHandler(async (_req, res) => {
+    res.json(await listInventoryItems());
+  }));
+
+  app.post('/api/inventory', asyncHandler(async (req, res) => {
+    const { name, category, quantity, unit, low_stock_threshold: lowStockThreshold, notes } = req.body;
+    if (!name) {
+      res.status(400).json({ detail: 'name is required.' });
+      return;
+    }
+    const item = await createInventoryItem({
+      name,
+      category,
+      quantity: parseFloat(quantity) || 0,
+      unit,
+      lowStockThreshold: parseFloat(lowStockThreshold) || 0,
+      notes,
+    });
+    res.json(item);
+  }));
+
+  app.post('/api/inventory/:id/quantity', asyncHandler(async (req, res) => {
+    const quantity = parseFloat(req.body.quantity);
+    if (Number.isNaN(quantity)) {
+      res.status(400).json({ detail: 'quantity must be a number.' });
+      return;
+    }
+    res.json(await updateInventoryQuantity(req.params.id, quantity));
+  }));
+
+  app.post('/api/inventory/:id/delete', asyncHandler(async (req, res) => {
+    res.json(await deleteInventoryItem(req.params.id));
   }));
 
   // Inbound WhatsApp messages from Twilio

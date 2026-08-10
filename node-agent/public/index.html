@@ -42,9 +42,6 @@
           <button class="nav-item" data-view="bookings" type="button">
             <span class="nav-icon" aria-hidden="true">◌</span><span>Bookings</span>
           </button>
-          <button class="nav-item" data-view="customers" type="button">
-            <span class="nav-icon" aria-hidden="true">◎</span><span>Customers</span>
-          </button>
           <button class="nav-item" data-view="reviews" type="button">
             <span class="nav-icon" aria-hidden="true">✦</span><span>Reviews</span>
           </button>
@@ -57,11 +54,8 @@
           <button class="nav-item" data-view="voice" type="button">
             <span class="nav-icon" aria-hidden="true">◍</span><span>Voice</span>
           </button>
-          <button class="nav-item" data-view="staff" type="button">
-            <span class="nav-icon" aria-hidden="true">⬢</span><span>Staff</span>
-          </button>
-          <button class="nav-item" data-view="assistant" type="button">
-            <span class="nav-icon" aria-hidden="true">✧</span><span>AI Assistant</span>
+          <button class="nav-item" data-view="inventory" type="button">
+            <span class="nav-icon" aria-hidden="true">▤</span><span>Inventory</span>
           </button>
         </nav>
 
@@ -97,7 +91,6 @@
               </p>
             </div>
             <div class="hero-actions">
-              <button class="assistant-launch-btn" id="assistantLaunchBtn" type="button">Start conversation</button>
               <div class="hero-badge"><span class="dot"></span>Connected to API</div>
               <div class="hero-badge halal-badge">☪ Halal-certified</div>
               <div class="hero-note">WhatsApp delivery depends on Twilio sender approval.</div>
@@ -324,10 +317,10 @@
                   </div>
                 </div>
                 <div class="shortcut-grid">
-                  <button class="shortcut-card" type="button" data-view="assistant">
-                    <span class="shortcut-icon" aria-hidden="true">✧</span>
-                    <strong>AI Assistant</strong>
-                    <span>Open the concierge</span>
+                  <button class="shortcut-card" type="button" data-view="inventory">
+                    <span class="shortcut-icon" aria-hidden="true">▤</span>
+                    <strong>Inventory</strong>
+                    <span>Track grocery stock</span>
                   </button>
                   <button class="shortcut-card" type="button" data-view="menu">
                     <span class="shortcut-icon" aria-hidden="true">🍲</span>
@@ -338,11 +331,6 @@
                     <span class="shortcut-icon" aria-hidden="true">◌</span>
                     <strong>Bookings</strong>
                     <span>Manage reservations</span>
-                  </button>
-                  <button class="shortcut-card" type="button" data-view="customers">
-                    <span class="shortcut-icon" aria-hidden="true">◎</span>
-                    <strong>Customers</strong>
-                    <span>Loyalty records</span>
                   </button>
                 </div>
               </section>
@@ -816,7 +804,70 @@
           </div>
         </section>
 
-        <!-- STAFF VIEW -->
+        <!-- INVENTORY VIEW -->
+        <section class="view" id="inventoryView" data-view="inventory">
+          <div class="view-header">
+            <div>
+              <p class="eyebrow">Kitchen &amp; bar stock</p>
+              <h2>Inventory</h2>
+            </div>
+          </div>
+          <div class="content-grid">
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Add or restock</p>
+                    <h3>Grocery item</h3>
+                  </div>
+                </div>
+                <form id="inventoryForm">
+                  <label>
+                    Item name
+                    <input id="invItemName" type="text" placeholder="e.g. Sichuan peppercorn" required />
+                  </label>
+                  <label>
+                    Category
+                    <input id="invItemCategory" type="text" placeholder="e.g. Spices, Produce, Meat, Beverages" />
+                  </label>
+                  <label>
+                    Quantity
+                    <input id="invItemQuantity" type="number" min="0" step="0.01" value="0" />
+                  </label>
+                  <label>
+                    Unit
+                    <input id="invItemUnit" type="text" placeholder="e.g. kg, packs, bottles" />
+                  </label>
+                  <label>
+                    Low-stock alert threshold
+                    <input id="invItemThreshold" type="number" min="0" step="0.01" value="0" />
+                  </label>
+                  <label>
+                    Notes
+                    <input id="invItemNotes" type="text" placeholder="Supplier, storage notes, etc. (optional)" />
+                  </label>
+                  <div class="button-row">
+                    <button class="primary-btn" id="addInventoryItemBtn" type="submit">Add item</button>
+                  </div>
+                </form>
+              </section>
+            </div>
+            <div class="stack-column">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Current stock</p>
+                    <h3>Inventory list</h3>
+                  </div>
+                  <button class="ghost-btn" id="refreshInventoryBtn" type="button">Refresh</button>
+                </div>
+                <div class="records" id="inventoryRecords">Loading inventory...</div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- STAFF VIEW (unreachable - tab removed, kept only so existing IDs below don't break other scripts) -->
         <section class="view" id="staffView" data-view="staff">
           <div class="view-header">
             <div>

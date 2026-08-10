@@ -55,6 +55,9 @@ const capLunchRemaining = document.getElementById('capLunchRemaining');
 const capDinnerRemaining = document.getElementById('capDinnerRemaining');
 const capWaitlistCount = document.getElementById('capWaitlistCount');
 const waitlistRecords = document.getElementById('waitlistRecords');
+const inventoryForm = document.getElementById('inventoryForm');
+const inventoryRecords = document.getElementById('inventoryRecords');
+const refreshInventoryBtn = document.getElementById('refreshInventoryBtn');
 
 const state = {
   bookings: [],
@@ -986,6 +989,9 @@ function switchView(viewName) {
     refreshVoiceDiagnostics();
     refreshColdCallQueueStatus();
   }
+  if (viewName === 'inventory') {
+    loadInventory();
+  }
 }
 
 document.querySelectorAll('.nav-item, .shortcut-card').forEach((item) => {
@@ -1253,6 +1259,105 @@ document.getElementById('uploadColdCallCsvBtn')?.addEventListener('click', async
 });
 
 refreshColdCallQueueStatus();
+
+function renderInventory(items) {
+  if (!inventoryRecords) return;
+  inventoryRecords.innerHTML = '';
+
+  if (!items.length) {
+    inventoryRecords.innerHTML = '<div class="empty-state">No inventory items yet - add one on the left.</div>';
+    return;
+  }
+
+  items.forEach((item) => {
+    const qty = Number(item.quantity) || 0;
+    const threshold = Number(item.low_stock_threshold) || 0;
+    const isLow = threshold > 0 && qty <= threshold;
+    const el = document.createElement('article');
+    el.className = 'record-item';
+    el.innerHTML = `
+      <div class="record-main">
+        <strong>${escapeHtml(item.name)}</strong>
+        <span class="badge ${isLow ? 'red' : 'emerald'}">${isLow ? 'LOW STOCK' : 'OK'} · ${qty} ${escapeHtml(item.unit || '')}</span>
+      </div>
+      <div class="record-meta">
+        <span>${escapeHtml(item.category || 'Uncategorized')}</span>
+        ${item.notes ? `<span>${escapeHtml(item.notes)}</span>` : ''}
+        <span>Updated: ${item.updated_at ? new Date(item.updated_at).toLocaleString() : '—'}</span>
+      </div>
+      <div class="button-row">
+        <input type="number" min="0" step="0.01" value="${qty}" class="inv-qty-input" style="width:90px" />
+        <button class="secondary-btn inv-update-btn" type="button">Update qty</button>
+        <button class="ghost-btn inv-delete-btn" type="button">Remove</button>
+      </div>
+    `;
+    const qtyInput = el.querySelector('.inv-qty-input');
+    el.querySelector('.inv-update-btn').addEventListener('click', async () => {
+      try {
+        const response = await fetch(`${apiBase()}/api/inventory/${item.id}/quantity`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity: parseFloat(qtyInput.value) || 0 }),
+        });
+        if (!response.ok) throw new Error((await response.json()).detail || 'Unable to update quantity.');
+        await loadInventory();
+      } catch (error) {
+        addMessage('system', error.message);
+      }
+    });
+    el.querySelector('.inv-delete-btn').addEventListener('click', async () => {
+      try {
+        const response = await fetch(`${apiBase()}/api/inventory/${item.id}/delete`, { method: 'POST' });
+        if (!response.ok) throw new Error((await response.json()).detail || 'Unable to remove item.');
+        await loadInventory();
+      } catch (error) {
+        addMessage('system', error.message);
+      }
+    });
+    inventoryRecords.appendChild(el);
+  });
+}
+
+async function loadInventory() {
+  if (!inventoryRecords) return;
+  try {
+    const response = await fetch(`${apiBase()}/api/inventory`);
+    if (!response.ok) throw new Error('Unable to load inventory.');
+    renderInventory(await response.json());
+  } catch (error) {
+    inventoryRecords.textContent = 'Inventory unavailable.';
+  }
+}
+
+inventoryForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const name = document.getElementById('invItemName')?.value.trim();
+  if (!name) {
+    addMessage('system', 'Enter an item name first.');
+    return;
+  }
+  try {
+    const response = await fetch(`${apiBase()}/api/inventory`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        category: document.getElementById('invItemCategory')?.value.trim() || '',
+        quantity: parseFloat(document.getElementById('invItemQuantity')?.value) || 0,
+        unit: document.getElementById('invItemUnit')?.value.trim() || '',
+        low_stock_threshold: parseFloat(document.getElementById('invItemThreshold')?.value) || 0,
+        notes: document.getElementById('invItemNotes')?.value.trim() || '',
+      }),
+    });
+    if (!response.ok) throw new Error((await response.json()).detail || 'Unable to add item.');
+    inventoryForm.reset();
+    await loadInventory();
+  } catch (error) {
+    addMessage('system', error.message);
+  }
+});
+
+refreshInventoryBtn?.addEventListener('click', loadInventory);
 
 async function startAssistantConversation() {
   try {
