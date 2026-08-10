@@ -2,7 +2,7 @@ import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import { VAD, calcEnergy } from './vad';
 import { transcribeAudio } from '../stt/groqWhisper';
-import { synthesizeSpeech, getCachedGreeting } from '../tts/deepgramTts';
+import { synthesizeSpeech, getCachedGreeting } from '../tts';
 import { streamVoiceAgentTurn, VoiceMessage } from '../llm/voiceAgent';
 import { generateRestaurantNoise, mixNoise, CHUNK_BYTES } from '../audio/noise';
 import { analyzeCallTranscript } from '../postCall';
@@ -175,7 +175,7 @@ export class CallSession {
       const fullReply = await this.speakStreamed(
         (onSentence) => streamVoiceAgentTurn(
           this.phone, transcript, this.history.slice(0, -1),
-          this.outbound ? this.purpose : null, onSentence, this.outbound,
+          this.outbound ? this.purpose : null, onSentence, true,
           this.outbound ? this.coldCall : null,
         ),
       );

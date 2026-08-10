@@ -30,6 +30,14 @@ export const ENV = {
   ],
   voiceAmbientNoiseEnabled: bool(process.env.VOICE_AMBIENT_NOISE, true),
 
+  // TTS provider switch - 'azure' uses a real Singapore-English voice (en-SG), which
+  // Deepgram's Aura catalog doesn't offer (checked live against their /v1/models list).
+  ttsProvider: (process.env.TTS_PROVIDER ?? 'deepgram').toLowerCase(),
+  azureSpeechKey: process.env.AZURE_SPEECH_KEY ?? '',
+  azureSpeechRegion: process.env.AZURE_SPEECH_REGION ?? 'southeastasia',
+  azureSpeechCustomDomain: process.env.AZURE_SPEECH_CUSTOM_DOMAIN ?? 'jing-speech',
+  azureSpeechVoice: process.env.AZURE_SPEECH_VOICE ?? 'en-SG-WayneNeural',
+
   // Voice - STT (Groq Whisper batch, replacing Deepgram streaming STT)
   groqSttModel: process.env.GROQ_STT_MODEL ?? 'whisper-large-v3-turbo',
 

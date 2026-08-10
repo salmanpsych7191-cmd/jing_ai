@@ -9,7 +9,7 @@ import { initDb } from '../db/schema';
 import { initSchedulerTable, startScheduler } from '../scheduler';
 import { registerAllJobHandlers } from '../scheduler/handlers';
 import { startColdCallDialer } from '../scheduler/coldCallDialer';
-import { presynthesizeGreeting } from '../voice/tts/deepgramTts';
+import { presynthesizeGreeting } from '../voice/tts';
 import { dashboardAuthMiddleware } from './authMiddleware';
 import { verifyTwilioMiddleware } from './verifyTwilio';
 import { webhookVoice, webhookVoiceOutbound } from '../telephony/voiceWebhooks';
