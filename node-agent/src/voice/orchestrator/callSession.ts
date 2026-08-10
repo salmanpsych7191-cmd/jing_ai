@@ -170,13 +170,16 @@ export class CallSession {
   }
 
   private async processUserSpeech(transcript: string): Promise<void> {
+    // Captured before speakStreamed runs, which resets wasInterruptedThisTurn for its
+    // OWN turn as its first line - by then this turn's barge-in signal would be lost.
+    const wasBargeIn = this.wasInterruptedThisTurn;
     this.history.push({ role: 'user', content: transcript });
     try {
       const fullReply = await this.speakStreamed(
         (onSentence) => streamVoiceAgentTurn(
           this.phone, transcript, this.history.slice(0, -1),
           this.outbound ? this.purpose : null, onSentence, true,
-          this.outbound ? this.coldCall : null,
+          this.outbound ? this.coldCall : null, wasBargeIn,
         ),
       );
       if (fullReply) this.history.push({ role: 'assistant', content: fullReply });

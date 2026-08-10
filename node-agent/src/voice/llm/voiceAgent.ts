@@ -203,11 +203,25 @@ export async function streamVoiceAgentTurn(
   onSentence: (sentence: string) => void,
   allowTransfer: boolean = true,
   coldCall: ColdCallContext | null = null,
+  wasInterrupted: boolean = false,
 ): Promise<VoiceTurnResult> {
   const systemPrompt = coldCall
     ? buildColdCallSystemPrompt(phone, coldCall.companyName, coldCall.contactName)
     : buildVoiceSystemPrompt(phone, outboundPurpose, allowTransfer);
-  const messages: any[] = [{ role: 'system', content: systemPrompt }, ...history, { role: 'user', content: text }];
+  const messages: any[] = [{ role: 'system', content: systemPrompt }, ...history];
+  // The caller cut in mid-sentence - told explicitly rather than left implicit, since
+  // otherwise replies tended to either ignore the interruption or restart the original
+  // point instead of directly answering what was just asked.
+  if (wasInterrupted) {
+    messages.push({
+      role: 'system',
+      content:
+        'The caller just cut in while you were still speaking. Briefly acknowledge that ' +
+        '("oh, sorry — go ahead", "sure, one sec") and then directly answer what they just asked, ' +
+        'before returning to anything else you were saying.',
+    });
+  }
+  messages.push({ role: 'user', content: text });
   let shouldTransfer = false;
   // Removed for inbound calls per explicit request - the tool schema itself is
   // withheld so the model can't call it at all, not just discouraged via the prompt.

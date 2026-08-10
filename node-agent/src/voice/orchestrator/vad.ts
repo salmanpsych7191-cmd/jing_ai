@@ -19,7 +19,11 @@ const FLOOR_SEED = 30; // initial guess before any real data for this call exist
 const FLOOR_DECAY_DOWN = 0.9; // fast: quickly trust quieter audio as the new floor
 const FLOOR_DECAY_UP = 0.995; // slow: a burst of speech shouldn't redefine "quiet"
 const MIN_AUDIO_BYTES = 6400; // ~800ms minimum speech before treating it as a real utterance
-const SILENCE_MS = 600; // how long a caller must go quiet before we treat the utterance as finished
+// Was 600ms - too short in practice: a caller's mid-sentence pause (e.g. "yes, we do
+// have... [pause] ...an event coming up") got cut as a finished utterance, sending a
+// fragment to the LLM and producing a reply that then sounded repeated once the rest
+// of the sentence arrived as a second turn. 2s gives a real pause room to happen.
+const SILENCE_MS = 2000;
 
 export class VAD extends EventEmitter {
   private audioBuffer: Buffer[] = [];
