@@ -39,7 +39,9 @@ export async function synthesizeSpeech(text: string): Promise<Buffer> {
   const gender = ENV.azureSpeechVoice.toLowerCase().includes('wayne') ? 'Male' : 'Female';
   const ssml =
     `<speak version="1.0" xml:lang="en-SG">` +
-    `<voice xml:lang="en-SG" xml:gender="${gender}" name="${ENV.azureSpeechVoice}">${escapeSsml(cleanText)}</voice>` +
+    `<voice xml:lang="en-SG" xml:gender="${gender}" name="${ENV.azureSpeechVoice}">` +
+    `<prosody pitch="${ENV.azureSpeechPitch}" rate="${ENV.azureSpeechRate}">${escapeSsml(cleanText)}</prosody>` +
+    `</voice>` +
     `</speak>`;
 
   const response = await fetch(`https://${ENV.azureSpeechRegion}.tts.speech.microsoft.com/cognitiveservices/v1`, {

@@ -37,6 +37,10 @@ export const ENV = {
   azureSpeechRegion: process.env.AZURE_SPEECH_REGION ?? 'southeastasia',
   azureSpeechCustomDomain: process.env.AZURE_SPEECH_CUSTOM_DOMAIN ?? 'jing-speech',
   azureSpeechVoice: process.env.AZURE_SPEECH_VOICE ?? 'en-SG-WayneNeural',
+  // en-SG voices have no built-in "cheerful" style (checked live - StyleList is empty
+  // for both), so energy is dialed in via SSML prosody instead of a style tag.
+  azureSpeechPitch: process.env.AZURE_SPEECH_PITCH ?? '+12%',
+  azureSpeechRate: process.env.AZURE_SPEECH_RATE ?? '+8%',
 
   // Voice - STT (Groq Whisper batch, replacing Deepgram streaming STT)
   groqSttModel: process.env.GROQ_STT_MODEL ?? 'whisper-large-v3-turbo',
