@@ -22,6 +22,8 @@ import {
   createInventoryItem, listInventoryItems, updateInventoryQuantity, deleteInventoryItem,
   parseInventoryFile, bulkCreateInventoryItems,
 } from '../db/inventory';
+import { sendDailyInventoryReport } from '../reports/inventoryReport';
+import { emailConfigured } from '../email/mailer';
 
 function asyncHandler(fn: (req: Request, res: Response) => Promise<void>) {
   return (req: Request, res: Response) => {
@@ -321,6 +323,19 @@ Return only the response text.
     }
     const inserted = await bulkCreateInventoryItems(parsed.rows);
     res.json({ inserted, skipped: parsed.skipped, total: parsed.total });
+  }));
+
+  app.get('/api/inventory/report/status', asyncHandler(async (_req, res) => {
+    res.json({ configured: emailConfigured(), to: ENV.emailTo || null, send_time: '23:00 ' + ENV.bookingTimezone });
+  }));
+
+  app.post('/api/inventory/report/send-now', asyncHandler(async (_req, res) => {
+    const result = await sendDailyInventoryReport();
+    if (!result.sent) {
+      res.status(400).json({ detail: result.note });
+      return;
+    }
+    res.json(result);
   }));
 
   // Inbound WhatsApp messages from Twilio

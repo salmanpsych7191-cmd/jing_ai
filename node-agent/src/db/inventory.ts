@@ -145,8 +145,8 @@ function parseInventoryCsv(text: string): ParsedInventoryResult {
   return { rows, skipped, total: dataLines.length };
 }
 
-export async function listInventoryItems() {
-  return query('SELECT * FROM inventory_items ORDER BY name ASC');
+export async function listInventoryItems(limit = 2000) {
+  return query('SELECT * FROM inventory_items ORDER BY name ASC LIMIT $1', [limit]);
 }
 
 export async function updateInventoryQuantity(id: string, quantity: number) {

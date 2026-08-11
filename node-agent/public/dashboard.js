@@ -908,6 +908,7 @@ function switchView(viewName) {
   }
   if (viewName === 'inventory') {
     loadInventory();
+    refreshInventoryReportStatus();
   }
 }
 
@@ -1177,61 +1178,139 @@ document.getElementById('uploadColdCallCsvBtn')?.addEventListener('click', async
 
 refreshColdCallQueueStatus();
 
+let inventoryItemsCache = [];
+
+function isInventoryItemLow(item) {
+  const threshold = Number(item.low_stock_threshold) || 0;
+  const qty = Number(item.quantity) || 0;
+  return threshold > 0 && qty <= threshold;
+}
+
+function updateInventoryStatsUI(items) {
+  const total = items.length;
+  const low = items.filter(isInventoryItemLow).length;
+  const categories = new Set(items.map((i) => i.category || 'Uncategorized'));
+  const unassigned = items.filter((i) => !i.category || i.category.toLowerCase() === 'unassigned').length;
+
+  const totalEl = document.getElementById('invStatTotal');
+  const lowEl = document.getElementById('invStatLow');
+  const catEl = document.getElementById('invStatCategories');
+  const unassignedEl = document.getElementById('invStatUnassigned');
+  const lowBlock = document.getElementById('invStatLowBlock');
+  if (totalEl) totalEl.textContent = total;
+  if (lowEl) lowEl.textContent = low;
+  if (catEl) catEl.textContent = categories.size;
+  if (unassignedEl) unassignedEl.textContent = unassigned;
+  if (lowBlock) lowBlock.classList.toggle('has-low', low > 0);
+  const pill = document.getElementById('inventoryUpdatedPill');
+  if (pill) pill.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+}
+
+function buildInventoryItemRow(item) {
+  const qty = Number(item.quantity) || 0;
+  const isLow = isInventoryItemLow(item);
+  const el = document.createElement('article');
+  el.className = 'record-item';
+  el.innerHTML = `
+    <div class="record-main">
+      <strong>${escapeHtml(item.name)}</strong>
+      <span class="badge ${isLow ? 'red' : 'emerald'}">${isLow ? 'LOW STOCK' : 'OK'} · ${qty} ${escapeHtml(item.unit || '')}</span>
+    </div>
+    <div class="record-meta">
+      ${item.notes ? `<span>${escapeHtml(item.notes)}</span>` : ''}
+      <span>Updated: ${item.updated_at ? new Date(item.updated_at).toLocaleString() : '—'}</span>
+    </div>
+    <div class="button-row">
+      <input type="number" min="0" step="0.01" value="${qty}" class="inv-qty-input" style="width:90px" />
+      <button class="secondary-btn inv-update-btn" type="button">Update qty</button>
+      <button class="ghost-btn inv-delete-btn" type="button">Remove</button>
+    </div>
+  `;
+  const qtyInput = el.querySelector('.inv-qty-input');
+  el.querySelector('.inv-update-btn').addEventListener('click', async () => {
+    try {
+      const response = await fetch(`${apiBase()}/api/inventory/${item.id}/quantity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: parseFloat(qtyInput.value) || 0 }),
+      });
+      if (!response.ok) throw new Error((await response.json()).detail || 'Unable to update quantity.');
+      await loadInventory();
+    } catch (error) {
+      addMessage('system', error.message);
+    }
+  });
+  el.querySelector('.inv-delete-btn').addEventListener('click', async () => {
+    try {
+      const response = await fetch(`${apiBase()}/api/inventory/${item.id}/delete`, { method: 'POST' });
+      if (!response.ok) throw new Error((await response.json()).detail || 'Unable to remove item.');
+      await loadInventory();
+    } catch (error) {
+      addMessage('system', error.message);
+    }
+  });
+  return el;
+}
+
 function renderInventory(items) {
   if (!inventoryRecords) return;
-  inventoryRecords.innerHTML = '';
+  updateInventoryStatsUI(items);
 
-  if (!items.length) {
-    inventoryRecords.innerHTML = '<div class="empty-state">No inventory items yet - add one on the left.</div>';
+  const searchTerm = (document.getElementById('inventorySearch')?.value || '').trim().toLowerCase();
+  const lowOnly = Boolean(document.getElementById('inventoryLowOnly')?.checked);
+
+  let filtered = items;
+  if (searchTerm) {
+    filtered = filtered.filter((i) =>
+      i.name.toLowerCase().includes(searchTerm) || (i.category || '').toLowerCase().includes(searchTerm));
+  }
+  if (lowOnly) filtered = filtered.filter(isInventoryItemLow);
+
+  inventoryRecords.innerHTML = '';
+  if (!filtered.length) {
+    inventoryRecords.innerHTML = `<div class="empty-state">${
+      items.length ? 'No items match your search/filter.' : 'No inventory items yet - add one, or bulk-upload a spreadsheet.'
+    }</div>`;
     return;
   }
 
-  items.forEach((item) => {
-    const qty = Number(item.quantity) || 0;
-    const threshold = Number(item.low_stock_threshold) || 0;
-    const isLow = threshold > 0 && qty <= threshold;
-    const el = document.createElement('article');
-    el.className = 'record-item';
-    el.innerHTML = `
-      <div class="record-main">
-        <strong>${escapeHtml(item.name)}</strong>
-        <span class="badge ${isLow ? 'red' : 'emerald'}">${isLow ? 'LOW STOCK' : 'OK'} · ${qty} ${escapeHtml(item.unit || '')}</span>
-      </div>
-      <div class="record-meta">
-        <span>${escapeHtml(item.category || 'Uncategorized')}</span>
-        ${item.notes ? `<span>${escapeHtml(item.notes)}</span>` : ''}
-        <span>Updated: ${item.updated_at ? new Date(item.updated_at).toLocaleString() : '—'}</span>
-      </div>
-      <div class="button-row">
-        <input type="number" min="0" step="0.01" value="${qty}" class="inv-qty-input" style="width:90px" />
-        <button class="secondary-btn inv-update-btn" type="button">Update qty</button>
-        <button class="ghost-btn inv-delete-btn" type="button">Remove</button>
-      </div>
+  const groups = new Map();
+  filtered.forEach((item) => {
+    const cat = item.category || 'Uncategorized';
+    if (!groups.has(cat)) groups.set(cat, []);
+    groups.get(cat).push(item);
+  });
+
+  const sortedCategories = [...groups.keys()].sort((a, b) => a.localeCompare(b));
+  sortedCategories.forEach((cat) => {
+    const catItems = groups.get(cat).sort((a, b) => a.name.localeCompare(b.name));
+    const lowInCat = catItems.filter(isInventoryItemLow).length;
+
+    const group = document.createElement('div');
+    group.className = 'inventory-category-group';
+    // Auto-expand categories that actually need attention, or the only group showing
+    // (e.g. after a search) - everything else stays collapsed so 190 items don't
+    // turn into 190 rows of visual noise on first load.
+    if (sortedCategories.length === 1 || lowInCat > 0) group.classList.add('is-open');
+
+    const header = document.createElement('button');
+    header.type = 'button';
+    header.className = 'inventory-category-header';
+    header.innerHTML = `
+      <span class="inventory-category-title"><span class="inventory-category-caret">▸</span> ${escapeHtml(cat)}</span>
+      <span class="inventory-category-counts">${catItems.length} item${catItems.length === 1 ? '' : 's'}${
+        lowInCat ? ` · <span class="badge red">${lowInCat} low</span>` : ''
+      }</span>
     `;
-    const qtyInput = el.querySelector('.inv-qty-input');
-    el.querySelector('.inv-update-btn').addEventListener('click', async () => {
-      try {
-        const response = await fetch(`${apiBase()}/api/inventory/${item.id}/quantity`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ quantity: parseFloat(qtyInput.value) || 0 }),
-        });
-        if (!response.ok) throw new Error((await response.json()).detail || 'Unable to update quantity.');
-        await loadInventory();
-      } catch (error) {
-        addMessage('system', error.message);
-      }
-    });
-    el.querySelector('.inv-delete-btn').addEventListener('click', async () => {
-      try {
-        const response = await fetch(`${apiBase()}/api/inventory/${item.id}/delete`, { method: 'POST' });
-        if (!response.ok) throw new Error((await response.json()).detail || 'Unable to remove item.');
-        await loadInventory();
-      } catch (error) {
-        addMessage('system', error.message);
-      }
-    });
-    inventoryRecords.appendChild(el);
+    header.addEventListener('click', () => group.classList.toggle('is-open'));
+
+    const body = document.createElement('div');
+    body.className = 'inventory-category-body';
+    catItems.forEach((item) => body.appendChild(buildInventoryItemRow(item)));
+
+    group.appendChild(header);
+    group.appendChild(body);
+    inventoryRecords.appendChild(group);
   });
 }
 
@@ -1240,11 +1319,41 @@ async function loadInventory() {
   try {
     const response = await fetch(`${apiBase()}/api/inventory`);
     if (!response.ok) throw new Error('Unable to load inventory.');
-    renderInventory(await response.json());
+    inventoryItemsCache = await response.json();
+    renderInventory(inventoryItemsCache);
   } catch (error) {
     inventoryRecords.textContent = 'Inventory unavailable.';
   }
 }
+
+document.getElementById('inventorySearch')?.addEventListener('input', () => renderInventory(inventoryItemsCache));
+document.getElementById('inventoryLowOnly')?.addEventListener('change', () => renderInventory(inventoryItemsCache));
+
+async function refreshInventoryReportStatus() {
+  const el = document.getElementById('inventoryReportStatus');
+  if (!el) return;
+  try {
+    const response = await fetch(`${apiBase()}/api/inventory/report/status`);
+    if (!response.ok) throw new Error('unavailable');
+    const data = await response.json();
+    el.textContent = data.configured
+      ? `Sends automatically every day at ${data.send_time} to ${data.to}.`
+      : 'Not configured yet - set EMAIL_FROM, EMAIL_APP_PASSWORD, and EMAIL_TO to enable the daily report.';
+  } catch (error) {
+    el.textContent = 'Report status unavailable.';
+  }
+}
+
+document.getElementById('sendInventoryReportBtn')?.addEventListener('click', async () => {
+  try {
+    const response = await fetch(`${apiBase()}/api/inventory/report/send-now`, { method: 'POST' });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || 'Unable to send the report.');
+    addMessage('assistant', `Inventory report sent - ${result.note}`);
+  } catch (error) {
+    addMessage('system', error.message);
+  }
+});
 
 inventoryForm?.addEventListener('submit', async (event) => {
   event.preventDefault();

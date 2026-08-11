@@ -679,8 +679,59 @@
               <p class="eyebrow">Kitchen &amp; bar stock</p>
               <h2>Inventory</h2>
             </div>
+            <div class="status-pill" id="inventoryUpdatedPill">--</div>
           </div>
+
+          <section class="loyalty-stats inventory-stats" id="inventoryStats" aria-label="Inventory status overview">
+            <div class="stat-block">
+              <strong id="invStatTotal">0</strong>
+              <span>Total items</span>
+            </div>
+            <div class="stat-block" id="invStatLowBlock">
+              <strong id="invStatLow">0</strong>
+              <span>Low stock</span>
+            </div>
+            <div class="stat-block">
+              <strong id="invStatCategories">0</strong>
+              <span>Categories</span>
+            </div>
+            <div class="stat-block">
+              <strong id="invStatUnassigned">0</strong>
+              <span>Needs categorising</span>
+            </div>
+          </section>
+
+          <section class="panel" style="margin-bottom:18px;">
+            <div class="panel-head slim">
+              <div>
+                <p class="eyebrow">Automated report</p>
+                <h3>Daily email summary</h3>
+              </div>
+              <button class="ghost-btn" id="sendInventoryReportBtn" type="button">Send test now</button>
+            </div>
+            <p class="panel-note" id="inventoryReportStatus">Checking report status...</p>
+          </section>
+
           <div class="content-grid">
+            <div class="stack-column" style="grid-column: 1 / -1;">
+              <section class="panel">
+                <div class="panel-head slim">
+                  <div>
+                    <p class="eyebrow">Current stock</p>
+                    <h3>By location</h3>
+                  </div>
+                  <button class="ghost-btn" id="refreshInventoryBtn" type="button">Refresh</button>
+                </div>
+                <div class="inventory-toolbar">
+                  <input id="inventorySearch" type="text" placeholder="Search items..." />
+                  <label class="inventory-low-toggle">
+                    <input id="inventoryLowOnly" type="checkbox" />
+                    Low stock only
+                  </label>
+                </div>
+                <div class="records" id="inventoryRecords">Loading inventory...</div>
+              </section>
+            </div>
             <div class="stack-column">
               <section class="panel">
                 <div class="panel-head slim">
@@ -719,6 +770,8 @@
                   </div>
                 </form>
               </section>
+            </div>
+            <div class="stack-column">
               <section class="panel">
                 <div class="panel-head slim">
                   <div>
@@ -737,18 +790,6 @@
                 <div class="button-row">
                   <button class="primary-btn" id="uploadInventoryFileBtn" type="button">Upload &amp; import</button>
                 </div>
-              </section>
-            </div>
-            <div class="stack-column">
-              <section class="panel">
-                <div class="panel-head slim">
-                  <div>
-                    <p class="eyebrow">Current stock</p>
-                    <h3>Inventory list</h3>
-                  </div>
-                  <button class="ghost-btn" id="refreshInventoryBtn" type="button">Refresh</button>
-                </div>
-                <div class="records" id="inventoryRecords">Loading inventory...</div>
               </section>
             </div>
           </div>
