@@ -42,6 +42,13 @@ export const ENV = {
   azureSpeechPitch: process.env.AZURE_SPEECH_PITCH ?? '+12%',
   azureSpeechRate: process.env.AZURE_SPEECH_RATE ?? '+8%',
 
+  // Fish Audio - community voice marketplace (not an official regional-locale
+  // catalog like Azure). Being trialled at the user's request; TTS_PROVIDER can be
+  // flipped back to 'azure' with no code changes if this doesn't work out.
+  fishAudioApiKey: process.env.FISH_AUDIO_API_KEY ?? '',
+  fishAudioModelId: process.env.FISH_AUDIO_MODEL_ID ?? '7f5db9168f0b4027b9cb169c641acd57',
+  fishAudioModel: process.env.FISH_AUDIO_MODEL ?? 's2.1-pro-free',
+
   // Voice - STT (Groq Whisper batch, replacing Deepgram streaming STT)
   groqSttModel: process.env.GROQ_STT_MODEL ?? 'whisper-large-v3-turbo',
 

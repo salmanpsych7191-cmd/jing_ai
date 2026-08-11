@@ -4,8 +4,9 @@
 const SAMPLE_RATE = 8000;
 export const CHUNK_BYTES = 160; // 20 ms at 8 kHz
 
-// G.711 mu-law encode / decode
-function encodeMulaw(s: number): number {
+// G.711 mu-law encode / decode - exported for reuse by TTS providers (e.g. Fish
+// Audio) that return raw 16-bit PCM instead of mulaw directly.
+export function encodeMulaw(s: number): number {
   const BIAS = 0x84;
   const CLIP = 32635;
   const sign = (s >> 8) & 0x80;
